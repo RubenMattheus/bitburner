@@ -1,0 +1,13 @@
+export function get_money(money: number) {
+	let money_string = "$" + String(money);
+
+	if (money / 1000 >= 1 && money / 1e6 < 1) {
+		money_string = "$" + String((money / 1000).toFixed(3)) + "K";
+	} else if (money / 1e6 >= 1 && money / 1e9 < 1) {
+		money_string = "$" + String((money / 1e6).toFixed(3)) + "m";
+	} else if (money / 1e9 >= 1 && money / 1e12 < 1) {
+		money_string = "$" + String((money / 1e9).toFixed(3)) + "b";
+	}
+
+	return money_string;
+}
