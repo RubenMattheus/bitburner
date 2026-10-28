@@ -4,12 +4,24 @@ import { get_money } from "../logging/money";
 
 const SCRIPT_BASE = "/scripts/hacking/actions/";
 
+/**
+ * Prints an overview of all purchased servers.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @async
+ * @returns {Promise<void>}
+ */
 export async function main(ns: NS): Promise<void> {
 	for (var s of ns.cloud.getServerNames()) {
 		ns.tprint(s + ": " + ns.getServerMaxRam(s) + "GB RAM");
 	}
 }
 
+/**
+ * Purchases and upgrades servers based on current money
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function manage_servers(ns: NS) {
 	const TIMESTAMP = get_timestamp();
 

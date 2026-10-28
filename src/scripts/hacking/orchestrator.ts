@@ -4,6 +4,13 @@ import { scanServers } from "../servers/server-scan";
 const SCRIPT_BASE = "/scripts/hacking/actions/";
 const SHARE_SERVERS = ["server_21", "server_22", "server_23", "server_24", "server_25"];
 
+/**
+ * Orchestrator function that manages the deployment of hacking scripts across servers with root access.
+ *
+ * It scans for servers, determines the optimal action for each target server, and executes the necessary scripts to weaken, grow, or hack the targets.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function deploy(ns: NS) {
 	var servers = scanServers(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
@@ -83,6 +90,14 @@ export function deploy(ns: NS) {
 	}
 }
 
+/**
+ * Execute scripts on servers with root access to perform a specified action on a target server.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} action - The action to execute ("weaken", "grow", or "hack").
+ * @param {string} target - The target server for the action.
+ * @param {number} total_needed_threads - The total number of threads needed for the action.
+ */
 function execute(ns: NS, action: string, target: string, total_needed_threads: number) {
 	const SCRIPT_PATH = SCRIPT_BASE + action + ".js";
 	var SCRIPT_RAM = ns.getScriptRam(SCRIPT_PATH);

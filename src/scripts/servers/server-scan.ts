@@ -1,5 +1,12 @@
 import { NS } from "@ns";
 
+/**
+ * Prints an overview of all relevant servers to backdoor for progress
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @async
+ * @returns {Promise<void>}
+ */
 export async function main(ns: NS): Promise<void> {
 	ns.tprint("-- FACTIONS --");
 	ns.tprint("CyberSec:\t\t" + find_server(ns, "CSEC"));
@@ -11,7 +18,16 @@ export async function main(ns: NS): Promise<void> {
 	ns.tprint("w0r1d_d43m0n :\t\t" + find_server(ns, "w0r1d_d43m0n"));
 }
 
-export function scanServers(ns: NS) {
+/**
+ * Returns a dictionary containing all servers with keys "hasRootAccess" and "noRootAccess"
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @returns {{ hasRootAccess: string[], noRootAccess: string[] }} The dictionary containing all servers
+ */
+export function scanServers(ns: NS): {
+	hasRootAccess: string[];
+	noRootAccess: string[];
+} {
 	var scanned = ["home"];
 	var checking = ns.scan();
 
@@ -56,6 +72,12 @@ export function scanServers(ns: NS) {
 	return server_dict;
 }
 
+/**
+ * Returns the server 'path' to a given server
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} target -The target server to find the path to.
+ */
 export function find_server(ns: NS, target: string): string[] {
 	var servers = scanServers(ns);
 

@@ -5,26 +5,9 @@ import { get_timestamp } from "../logging/timestamp";
 export function nuke(ns: NS) {
 	var timestamp = get_timestamp();
 
-	var portScripts = 0;
 	var no_root_access = scanServers(ns)["noRootAccess"];
 
 	for (var server of no_root_access) {
-		// if (ns.fileExists("BruteSSH.exe")) {
-		// 	ns.brutessh(server);
-		// }
-		// if (ns.fileExists("FTPCrack.exe")) {
-		// 	ns.ftpcrack(server);
-		// }
-		// if (ns.fileExists("relaySMTP.exe")) {
-		// 	ns.relaysmtp(server);
-		// }
-		// if (ns.fileExists("HTTPWorm.exe")) {
-		// 	ns.httpworm(server);
-		// }
-		// if (ns.fileExists("SQLInject.exe")) {
-		// 	ns.sqlinject(server);
-		// }
-
 		ns.brutessh(server);
 		ns.ftpcrack(server);
 		ns.relaysmtp(server);

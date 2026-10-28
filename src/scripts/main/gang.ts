@@ -2,21 +2,20 @@ import { NS } from "@ns";
 // LOGGING
 import { setup_log } from "./setup-log";
 // MECHANICS
-import { commit_crime, manage_gang } from "../mechanics/gang";
+import { manage_gang } from "../mechanics/gang";
 
+/**
+ * Manages everything gang-related
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @async
+ * @returns {Promise<void>}
+ */
 export async function main(ns: NS): Promise<void> {
 	setup_log(ns);
 
 	while (true) {
-		gang(ns);
+		manage_gang(ns, "Combat");
 		await ns.sleep(10200);
 	}
-}
-
-// GOAL: MAKE MONEY THROUGH GANG
-export function gang(ns: NS) {
-	if (!ns.gang.inGang()) {
-		commit_crime(ns);
-	}
-	manage_gang(ns, "Combat");
 }

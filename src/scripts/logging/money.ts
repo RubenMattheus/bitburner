@@ -1,3 +1,9 @@
+/**
+ * Formats a given amount of money into a human-readable string with appropriate suffixes.
+ *
+ * @param {number} money - The amount of money to format.
+ * @returns {string} - The formatted money string.
+ */
 export function get_money(money: number) {
 	let money_string = "$" + String(money);
 

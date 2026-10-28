@@ -1,8 +1,14 @@
 import { NS, CityName } from "@ns";
-import { commit_crime } from "./gang";
 
 const CITIES = ["Sector-12", "Chongqing", "New Tokyo", "Ishima", "Aevum", "Volhaven"];
 
+/**
+ * Prints Bladeburner progress and city information to the terminal.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @async
+ * @returns {Promise<void>}
+ */
 export async function main(ns: NS): Promise<void> {
 	var todo = ns.bladeburner.getBlackOpNames();
 	var total_count = todo.length;
@@ -46,6 +52,11 @@ export async function main(ns: NS): Promise<void> {
 	}
 }
 
+/**
+ * Orchestrator function for Bladeburner API
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function manage_bladeburner(ns: NS) {
 	ns.bladeburner.joinBladeburnerDivision();
 	ns.bladeburner.joinBladeburnerFaction();
@@ -55,7 +66,12 @@ export function manage_bladeburner(ns: NS) {
 	upgrade_skills(ns);
 }
 
-export function pick_action(ns: NS) {
+/**
+ * Sets current action to the most appropriate action based on current Bladeburner stats and city chaos.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function pick_action(ns: NS) {
 	var [stamina_current, stamina_max] = ns.bladeburner.getStamina();
 
 	if (ns.bladeburner.getCityChaos(ns.bladeburner.getCity()) > 50) {
@@ -64,8 +80,7 @@ export function pick_action(ns: NS) {
 	}
 
 	if (stamina_current < stamina_max / 2) {
-		// generate_work(ns);
-		ns.bladeburner.startAction("General", "Training"); // placeholder
+		ns.bladeburner.startAction("General", "Training");
 		return;
 	} else if (start_black_op(ns) == true) {
 		return;
@@ -74,34 +89,43 @@ export function pick_action(ns: NS) {
 	} else if (start_contract(ns) == true) {
 		return;
 	} else {
-		if (ns.gang.inGang() && ns.bladeburner.getCurrentAction()?.name != "Training") {
-			ns.bladeburner.startAction("General", "Training");
-		} else {
-			commit_crime(ns);
-		}
+		generate_work(ns);
 	}
 }
 
-export function generate_work(ns: NS) {
+/**
+ * Sets current action to "Incite Violence" if it is not already the current action.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function generate_work(ns: NS) {
 	if (ns.bladeburner.getCurrentAction()?.name != "Incite Violence") {
 		ns.bladeburner.startAction("General", "Incite Violence");
 	}
 }
 
-export function start_contract(ns: NS) {
+/**
+ * Attempts to start a contract based on current contract counts and estimated success chance. If a suitable contract is found, it will be started.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function start_contract(ns: NS) {
 	var current_action = ns.bladeburner.getCurrentAction()?.name;
 	var contracts = ns.bladeburner.getContractNames();
 
+	// Split contracts into two categories: stealth (no retirement) and retirement
 	var contracts_stealth = contracts.filter((a) => ["Tracking"].includes(a));
 	var contracts_retirement = contracts.filter((a) =>
 		["Bounty Hunter", "Retirement"].includes(a),
 	);
 
+	// Exclude retirement contracts if population is below 1.25b
 	var selection =
 		ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1.25e9
 			? contracts_stealth
 			: contracts_stealth.concat(contracts_retirement);
 
+	// Pick contract that has more than 100 remaining and has a success chance of at least 50%
 	for (let c of selection
 		.filter((a) => ns.bladeburner.getActionCountRemaining("Contracts", a) >= 100)
 		.reverse()) {
@@ -120,7 +144,12 @@ export function start_contract(ns: NS) {
 	return false;
 }
 
-export function start_operation(ns: NS) {
+/**
+ * Attempts to start a operation based on current contract counts and estimated success chance. If a suitable operation is found, it will be started.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function start_operation(ns: NS) {
 	var current_action = ns.bladeburner.getCurrentAction()?.name;
 	var operations = ns.bladeburner.getOperationNames();
 
@@ -160,7 +189,12 @@ export function start_operation(ns: NS) {
 	return false;
 }
 
-export function start_black_op(ns: NS) {
+/**
+ * Attempts to start a black ops based on current contract counts and estimated success chance. If a suitable black ops is found, it will be started.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function start_black_op(ns: NS) {
 	var current_action = ns.bladeburner.getCurrentAction()?.name;
 	var black_op = ns.bladeburner.getNextBlackOp();
 	if (black_op == null) {
@@ -192,7 +226,12 @@ export function start_black_op(ns: NS) {
 	return false;
 }
 
-export function upgrade_skills(ns: NS) {
+/**
+ * Upgrades skills
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function upgrade_skills(ns: NS) {
 	while (true) {
 		var skills = ns.bladeburner.getSkillNames();
 
@@ -243,7 +282,12 @@ export function upgrade_skills(ns: NS) {
 	}
 }
 
-export function pick_city(ns: NS) {
+/**
+ * Picks the city with the highest estimated population and switches to it.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function pick_city(ns: NS) {
 	var cities = CITIES;
 
 	cities.sort((a, b) => {
@@ -255,7 +299,12 @@ export function pick_city(ns: NS) {
 	ns.bladeburner.switchCity(cities[0] as CityName);
 }
 
-export function lower_chaos(ns: NS) {
+/**
+ * Lowers chaos in the current city by starting the "Stealth Retirement Operation" if conditions are met, or defaults to "Diplomacy" if not.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
+function lower_chaos(ns: NS) {
 	var current_action = ns.bladeburner.getCurrentAction()?.name;
 
 	var current_population = ns.bladeburner.getCityEstimatedPopulation(

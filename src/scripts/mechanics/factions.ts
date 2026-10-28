@@ -42,6 +42,13 @@ const FACTIONS = EARLYGAME_FACTIONS.concat(
 	ENDGAME_FACTIONS,
 );
 
+/**
+ * Prints all unowned augmentations, either grouped by unique factions that sell them or by type (Hacking, Combat, Rep, Special).
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @async
+ * @returns {Promise<void>}
+ */
 export async function main(ns: NS): Promise<void> {
 	ns.tprint("--- UNIQUE ---");
 
@@ -93,6 +100,12 @@ export async function main(ns: NS): Promise<void> {
 // ----------------- //
 // FACTION FUNCTIONS //
 // ----------------- //
+
+/**
+ * Join faction if faction either has no enemies or is the next faction in the faction order.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function join_factions(ns: NS) {
 	var invitations = ns.singularity.checkFactionInvitations();
 
@@ -105,7 +118,12 @@ export function join_factions(ns: NS) {
 	}
 }
 
-// accepted values for region: "west", "center", "east"
+/**
+ * Travels to all cities in a specified region
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} region - The region to travel to ("west", "center", or "east").
+ */
 export function travel(ns: NS, region: string) {
 	switch (region) {
 		case "west":
@@ -123,6 +141,11 @@ export function travel(ns: NS, region: string) {
 	}
 }
 
+/**
+ * Sets player action to work for the next faction in the faction order if the player has not yet reached 150 favor with that faction.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function faction_work(ns: NS) {
 	var target = get_next_faction(ns) as FactionName;
 	var total_favor =
@@ -133,8 +156,13 @@ export function faction_work(ns: NS) {
 	}
 }
 
-// returns next faction where not all hacking/reputation augments have been bought
-export function get_next_faction(ns: NS) {
+/**
+ * Returns the next faction in the faction order that has unowned augmentations, excluding the player's current gang faction.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @returns {string} The name of the next faction in the faction order that has unowned augmentations.
+ */
+export function get_next_faction(ns: NS): string {
 	var faction_order = [
 		"CyberSec",
 		"NiteSec",
@@ -166,13 +194,14 @@ export function get_next_faction(ns: NS) {
 	return faction_order[faction_order.length - 1];
 }
 
-// returns the faction with the highest reputation
-export function get_highest_faction(ns: NS, subset: string[] = [""]) {
-	if (subset[0] == "") {
-		var factions = ns.getPlayer().factions;
-	} else {
-		var factions = ns.getPlayer().factions;
-	}
+/**
+ * Returns the faction with the highest reputation, excluding the player's current gang faction.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @returns {string} The name of the faction with the highest reputation.
+ */
+export function get_highest_faction(ns: NS): string {
+	var factions = ns.getPlayer().factions;
 
 	if (ns.gang.inGang()) {
 		var index = factions.indexOf(ns.gang.getGangInformation().faction);
@@ -191,7 +220,14 @@ export function get_highest_faction(ns: NS, subset: string[] = [""]) {
 // ---------------------- //
 // AUGMENTATION FUNCTIONS //
 // ---------------------- //
-export function get_remaining_augmentations(ns: NS) {
+
+/**
+ * Returns the list of augmentations that are not yet owned by the player.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @returns {string[]} The list of augmentations that are not yet owned by the player.
+ */
+export function get_remaining_augmentations(ns: NS): string[] {
 	var aug: string[] = [];
 
 	for (var f of FACTIONS) {
@@ -213,7 +249,14 @@ export function get_remaining_augmentations(ns: NS) {
 		});
 }
 
-export function get_augmentation_selection(ns: NS, type: string) {
+/**
+ * Returns the list of augmentations of a specific type that are not yet owned by the player.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} type - The type of augmentations to select.
+ * @returns {string[]} The list of augmentations of the specified type that are not yet owned by the player.
+ */
+export function get_augmentation_selection(ns: NS, type: string): string[] {
 	var aug = get_remaining_augmentations(ns);
 
 	function select_hacking(a: string) {
@@ -261,11 +304,24 @@ export function get_augmentation_selection(ns: NS, type: string) {
 	}
 }
 
-export function get_unique_augmentations(ns: NS, aug: string[]) {
+/**
+ * Returns the list of unique augmentations that are only available from a single faction.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string[]} aug - The list of augmentations to filter.
+ * @returns {string[]} The list of unique augmentations that are only available from a single faction.
+ */
+export function get_unique_augmentations(ns: NS, aug: string[]): string[] {
 	return aug.filter((a) => ns.singularity.getAugmentationFactions(a).length == 1);
 }
 
-// buy most expensive (non-prereq locked) augmentations from faction until no longer possible
+/**
+ * Buys augmentations from a specified faction.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} faction - The faction from which to buy augmentations.
+ * @param {boolean} continue_buying - Whether to continue buying augmentations if a purchase fails.
+ */
 export function buy_augmentations(
 	ns: NS,
 	faction: string = "",
@@ -276,14 +332,14 @@ export function buy_augmentations(
 		faction_name = get_next_faction(ns);
 	}
 
-	function get_aug_to_buy(ns: NS): string[] {
+	function get_aug_to_buy(): string[] {
 		var aug_selection = get_remaining_augmentations(ns);
 		return ns.singularity
 			.getAugmentationsFromFaction(faction_name as FactionName)
 			.filter((a) => aug_selection.includes(a));
 	}
 
-	var aug = get_aug_to_buy(ns).sort(function (a, b) {
+	var aug = get_aug_to_buy().sort(function (a, b) {
 		return (
 			ns.singularity.getAugmentationPrice(b) -
 			ns.singularity.getAugmentationPrice(a)
@@ -338,7 +394,11 @@ export function buy_augmentations(
 	}
 }
 
-// purchase last augmentations before reset
+/**
+ * Purchase last affordable augmentations from the highest faction and NeuroFlux Governors until money runs out.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ */
 export function buy_last(ns: NS) {
 	if (ns.gang.inGang()) {
 		var gang_faction = ns.gang.getGangInformation().faction;
@@ -349,9 +409,12 @@ export function buy_last(ns: NS) {
 	while (
 		ns.getPlayer().money >
 			ns.singularity.getAugmentationPrice("NeuroFlux Governor") &&
-		ns.singularity.getFactionRep(highest_faction) >
+		ns.singularity.getFactionRep(highest_faction as FactionName) >
 			ns.singularity.getAugmentationRepReq("NeuroFlux Governor")
 	) {
-		ns.singularity.purchaseAugmentation(highest_faction, "NeuroFlux Governor");
+		ns.singularity.purchaseAugmentation(
+			highest_faction as FactionName,
+			"NeuroFlux Governor",
+		);
 	}
 }

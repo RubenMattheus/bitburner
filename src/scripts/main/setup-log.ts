@@ -1,8 +1,14 @@
 import { NS } from "@ns";
 import { get_timestamp } from "../logging/timestamp";
 
-export function setup_log(ns: NS, log_level: string = "INFO") {
-	if (log_level == "INFO") {
+/**
+ * Sets up the log for the main script.
+ *
+ * @param {NS} ns - The Bitburner API object.
+ * @param {string} minimal - Whether to use minimal logging (default: true).
+ */
+export function setup_log(ns: NS, minimal: boolean = true) {
+	if (minimal) {
 		ns.disableLog("ALL");
 	}
 
