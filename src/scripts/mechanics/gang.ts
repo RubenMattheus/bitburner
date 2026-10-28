@@ -3,7 +3,7 @@ import { get_timestamp, get_target_time } from "../logging/timestamp";
 
 export async function main(ns: NS): Promise<void> {
 	if (ns.gang.inGang()) {
-		var gangs = Object.keys(ns.gang.getOtherGangInformation());
+		var gangs = Object.keys(ns.gang.getAllGangInformation());
 		gangs.splice(0, 1);
 
 		var avg_win = 0;
@@ -209,7 +209,7 @@ export function get_combined_wanted_gain(ns: NS, type: string, members: string[]
 }
 
 export function can_win_clashes(ns: NS) {
-	var gangs = Object.keys(ns.gang.getOtherGangInformation());
+	var gangs = Object.keys(ns.gang.getAllGangInformation());
 	gangs.splice(0, 1);
 
 	for (var g of gangs) {

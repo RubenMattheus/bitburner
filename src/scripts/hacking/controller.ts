@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { scanServers } from "../servers/server_scan";
+import { scanServers } from "../servers/server-scan";
 
 const SCRIPT_BASE = "/scripts/hacking/actions/";
 const SHARE_SERVERS = ["server_21", "server_22", "server_23", "server_24", "server_25"];

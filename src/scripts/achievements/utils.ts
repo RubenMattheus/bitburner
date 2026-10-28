@@ -22,5 +22,5 @@ export async function main(ns: NS): Promise<void> {
 		await ns.sleep(3000);
 	}
 	ns.ui.closeTail();
-	ns.scriptKill("./heartbreak.js", "home");
+	ns.scriptKill("./utils.js", "home");
 }

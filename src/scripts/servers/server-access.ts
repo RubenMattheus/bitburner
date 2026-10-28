@@ -1,5 +1,5 @@
-import { NS } from "@ns";
-import { scanServers, find_server } from "./server_scan";
+import { NS, FactionName, ProgramName } from "@ns";
+import { scanServers, find_server } from "./server-scan";
 import { get_timestamp } from "../logging/timestamp";
 
 export function nuke(ns: NS) {
@@ -52,12 +52,12 @@ export async function backdoor(ns: NS, finish_bitnode: boolean = true): Promise<
 
 	var paths = [];
 
-	function backdoor_needed(faction_map: string) {
+	function backdoor_needed(faction_map: [string, string[]]) {
 		var faction = faction_map[0];
 		var path = faction_map[1];
 
-		var joined = current_factions.includes(faction);
-		var invited = current_invites.includes(faction);
+		var joined = current_factions.includes(faction as FactionName);
+		var invited = current_invites.includes(faction as FactionName);
 
 		var can_join =
 			faction != "Fulcrum Secret Technologies" ||
@@ -71,7 +71,7 @@ export async function backdoor(ns: NS, finish_bitnode: boolean = true): Promise<
 	}
 
 	for (var f of server_map) {
-		if (backdoor_needed(f[0])) {
+		if (backdoor_needed(f)) {
 			paths.push(f[1]);
 		} else if (f[0] == "w0r1d_d43m0n" && f[1] != undefined && finish_bitnode) {
 			// target is undefined when w0r1d_d43m0n isn't visible yet
@@ -80,14 +80,17 @@ export async function backdoor(ns: NS, finish_bitnode: boolean = true): Promise<
 	}
 
 	for (var p of paths) {
+		if (p.length == 0) {
+			continue;
+		}
 		for (const server of p) {
 			if (server == "home") {
 				continue;
 			} else {
 				ns.singularity.connect(server);
+				await ns.singularity.installBackdoor();
 			}
 		}
-		await ns.singularity.installBackdoor();
 		ns.singularity.connect("home");
 	}
 }
@@ -101,7 +104,7 @@ export function setup_tor(ns: NS) {
 			"HTTPWorm.exe",
 			"SQLInject.exe",
 		]) {
-			if (!ns.singularity.purchaseProgram(exe)) {
+			if (!ns.singularity.purchaseProgram(exe as ProgramName)) {
 				return;
 			}
 		}

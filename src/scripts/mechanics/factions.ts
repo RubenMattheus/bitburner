@@ -1,4 +1,4 @@
-import { NS } from "@ns";
+import { NS, FactionName } from "@ns";
 
 const EARLYGAME_FACTIONS = ["Tian Di Hui", "Netburners", "Shadows of Anarchy"];
 const CITY_FACTIONS = [
@@ -124,7 +124,7 @@ export function travel(ns: NS, region: string) {
 }
 
 export function faction_work(ns: NS) {
-	var target = get_next_faction(ns);
+	var target = get_next_faction(ns) as FactionName;
 	var total_favor =
 		ns.singularity.getFactionFavor(target) +
 		ns.singularity.getFactionFavorGain(target);
@@ -157,7 +157,7 @@ export function get_next_faction(ns: NS) {
 	for (var f of faction_order) {
 		if (
 			ns.singularity
-				.getAugmentationsFromFaction(f)
+				.getAugmentationsFromFaction(f as FactionName)
 				.some((a) => aug_selection.includes(a))
 		) {
 			return f;
@@ -195,7 +195,7 @@ export function get_remaining_augmentations(ns: NS) {
 	var aug: string[] = [];
 
 	for (var f of FACTIONS) {
-		for (var a of ns.singularity.getAugmentationsFromFaction(f)) {
+		for (var a of ns.singularity.getAugmentationsFromFaction(f as FactionName)) {
 			if (ns.singularity.getOwnedAugmentations(true).includes(a)) {
 				continue;
 			}
@@ -279,7 +279,7 @@ export function buy_augmentations(
 	function get_aug_to_buy(ns: NS): string[] {
 		var aug_selection = get_remaining_augmentations(ns);
 		return ns.singularity
-			.getAugmentationsFromFaction(faction_name)
+			.getAugmentationsFromFaction(faction_name as FactionName)
 			.filter((a) => aug_selection.includes(a));
 	}
 
@@ -308,14 +308,20 @@ export function buy_augmentations(
 			});
 		var owned = ns.singularity.getOwnedAugmentations(true);
 		for (var a of pre_req.filter((a) => !owned.includes(a))) {
-			if (!ns.singularity.purchaseAugmentation(faction_name, a) && in_gang) {
+			if (
+				!ns.singularity.purchaseAugmentation(faction_name as FactionName, a) &&
+				in_gang
+			) {
 				ns.singularity.purchaseAugmentation(
 					ns.gang.getGangInformation().faction,
 					a,
 				);
 			}
 		}
-		var purchased = ns.singularity.purchaseAugmentation(faction_name, next_aug);
+		var purchased = ns.singularity.purchaseAugmentation(
+			faction_name as FactionName,
+			next_aug,
+		);
 		if (!purchased && in_gang) {
 			purchased = ns.singularity.purchaseAugmentation(
 				ns.gang.getGangInformation().faction,
