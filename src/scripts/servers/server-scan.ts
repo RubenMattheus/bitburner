@@ -9,13 +9,13 @@ import { NS } from "@ns";
  */
 export async function main(ns: NS): Promise<void> {
 	ns.tprint("-- FACTIONS --");
-	ns.tprint("CyberSec:\t\t" + find_server(ns, "CSEC"));
-	ns.tprint("NiteSec:\t\t" + find_server(ns, "avmnite-02h"));
-	ns.tprint("The Black Hand:\t" + find_server(ns, "I.I.I.I"));
-	ns.tprint("BitRunners:\t\t" + find_server(ns, "run4theh111z"));
-	ns.tprint("Fulcrum Secret Technologies: " + find_server(ns, "fulcrumassets"));
+	ns.tprint("CyberSec:\t\t" + findServer(ns, "CSEC"));
+	ns.tprint("NiteSec:\t\t" + findServer(ns, "avmnite-02h"));
+	ns.tprint("The Black Hand:\t" + findServer(ns, "I.I.I.I"));
+	ns.tprint("BitRunners:\t\t" + findServer(ns, "run4theh111z"));
+	ns.tprint("Fulcrum Secret Technologies: " + findServer(ns, "fulcrumassets"));
 	ns.tprint("-- ENDGAME --");
-	ns.tprint("w0r1d_d43m0n :\t\t" + find_server(ns, "w0r1d_d43m0n"));
+	ns.tprint("w0r1d_d43m0n :\t\t" + findServer(ns, "w0r1d_d43m0n"));
 }
 
 /**
@@ -28,48 +28,48 @@ export function scanServers(ns: NS): {
 	hasRootAccess: string[];
 	noRootAccess: string[];
 } {
-	var scanned = ["home"];
-	var checking = ns.scan();
+	const scanned = ["home"];
+	const checking = ns.scan();
 
 	while (checking.length > 0) {
-		var CURRENT_SERVER = checking[0];
-		var CURRENT_SCAN = ns.scan(CURRENT_SERVER);
+		const currentServer = checking[0];
+		const currentScan = ns.scan(currentServer);
 
-		for (var server of CURRENT_SCAN) {
+		for (let server of currentScan) {
 			if (!checking.includes(server) && !scanned.includes(server)) {
 				checking.push(server);
 			}
 		}
 
-		scanned.push(CURRENT_SERVER);
+		scanned.push(currentServer);
 		checking.shift();
 	}
 
-	var server_dict: { hasRootAccess: string[]; noRootAccess: string[] } = {
+	const serverDict: { hasRootAccess: string[]; noRootAccess: string[] } = {
 		hasRootAccess: [],
 		noRootAccess: [],
 	};
 
-	for (var server of scanned) {
+	for (let server of scanned) {
 		if (ns.hasRootAccess(server)) {
-			server_dict["hasRootAccess"].push(server);
+			serverDict["hasRootAccess"].push(server);
 		} else {
-			server_dict["noRootAccess"].push(server);
+			serverDict["noRootAccess"].push(server);
 		}
 	}
 
-	server_dict["hasRootAccess"].sort(function (a, b) {
+	serverDict["hasRootAccess"].sort(function (a, b) {
 		return (
 			ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b)
 		);
 	});
-	server_dict["noRootAccess"].sort(function (a, b) {
+	serverDict["noRootAccess"].sort(function (a, b) {
 		return (
 			ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b)
 		);
 	});
 
-	return server_dict;
+	return serverDict;
 }
 
 /**
@@ -78,8 +78,8 @@ export function scanServers(ns: NS): {
  * @param {NS} ns - The Bitburner API object.
  * @param {string} target -The target server to find the path to.
  */
-export function find_server(ns: NS, target: string): string[] {
-	var servers = scanServers(ns);
+export function findServer(ns: NS, target: string): string[] {
+	const servers = scanServers(ns);
 
 	if (target == "home") {
 		return [];
@@ -92,7 +92,7 @@ export function find_server(ns: NS, target: string): string[] {
 
 	let server = target;
 	let parent = ns.scan(server)[0];
-	var path = [server];
+	const path = [server];
 
 	while (parent != "home") {
 		path.unshift(parent);

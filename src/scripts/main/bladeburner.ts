@@ -1,8 +1,7 @@
 import { NS } from "@ns";
-// LOGGING
-import { setup_log } from "./setup-log";
-// MECHANICS
-import { manage_bladeburner } from "../mechanics/bladeburner";
+import { setupLog } from "./setup-log";
+import { getTimestamp } from "../logging/timestamp";
+import { manageBladeburner } from "../mechanics/bladeburner";
 
 /**
  * Manages everything Bladeburner-related
@@ -12,10 +11,19 @@ import { manage_bladeburner } from "../mechanics/bladeburner";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setup_log(ns);
+	setupLog(ns, true, 3, 5);
+
+	let nextBlackOp = ns.bladeburner.getNextBlackOp();
+	ns.print(getTimestamp() + " Next Black Operation is " + nextBlackOp?.name);
 
 	while (true) {
-		manage_bladeburner(ns);
+		if (ns.bladeburner.getNextBlackOp()?.name != nextBlackOp?.name) {
+			ns.print(
+				getTimestamp() + " Completed Black Operation " + nextBlackOp?.name,
+			);
+			nextBlackOp = ns.bladeburner.getNextBlackOp();
+		}
+		manageBladeburner(ns);
 		await ns.sleep(10200);
 	}
 }

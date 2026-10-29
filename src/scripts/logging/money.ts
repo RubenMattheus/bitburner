@@ -4,7 +4,7 @@
  * @param {number} money - The amount of money to format.
  * @returns {string} - The formatted money string.
  */
-export function get_money(money: number) {
+export function getMoney(money: number): string {
 	let money_string = "$" + String(money);
 
 	if (money / 1000 >= 1 && money / 1e6 < 1) {

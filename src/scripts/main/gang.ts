@@ -1,8 +1,6 @@
 import { NS } from "@ns";
-// LOGGING
-import { setup_log } from "./setup-log";
-// MECHANICS
-import { manage_gang } from "../mechanics/gang";
+import { setupLog } from "./setup-log";
+import { manageGang } from "../mechanics/gang";
 
 /**
  * Manages everything gang-related
@@ -12,10 +10,10 @@ import { manage_gang } from "../mechanics/gang";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setup_log(ns);
+	setupLog(ns, true, 3, 6);
 
 	while (true) {
-		manage_gang(ns, "Combat");
+		manageGang(ns, "Combat");
 		await ns.sleep(10200);
 	}
 }

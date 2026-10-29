@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { buy_augmentations, buy_last } from "./mechanics/factions";
+import { buyAugmentations, buyLast } from "./mechanics/factions";
 
 /**
  * Resets the game by purchasing augmentations, waiting for a countdown, and then installing augmentations.
@@ -9,8 +9,8 @@ import { buy_augmentations, buy_last } from "./mechanics/factions";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	buy_augmentations(ns);
-	buy_last(ns);
+	buyAugmentations(ns);
+	buyLast(ns);
 
 	ns.tprint("Resetting in:");
 	for (let i = 20; i > 0; i--) {
@@ -18,6 +18,6 @@ export async function main(ns: NS): Promise<void> {
 		await ns.sleep(1000);
 	}
 
-	buy_last(ns);
+	buyLast(ns);
 	ns.singularity.installAugmentations("./main.js");
 }

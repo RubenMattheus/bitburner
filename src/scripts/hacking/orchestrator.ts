@@ -1,8 +1,8 @@
 import { NS } from "@ns";
 import { scanServers } from "../servers/server-scan";
 
-const SCRIPT_BASE = "/scripts/hacking/actions/";
-const SHARE_SERVERS = ["server_21", "server_22", "server_23", "server_24", "server_25"];
+const scriptBase = "/scripts/hacking/actions/";
+const shareServers = ["server_21", "server_22", "server_23", "server_24", "server_25"];
 
 /**
  * Orchestrator function that manages the deployment of hacking scripts across servers with root access.
@@ -12,80 +12,81 @@ const SHARE_SERVERS = ["server_21", "server_22", "server_23", "server_24", "serv
  * @param {NS} ns - The Bitburner API object.
  */
 export function deploy(ns: NS) {
-	var servers = scanServers(ns)["hasRootAccess"];
+	const servers = scanServers(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
 
-	var targets = servers.filter(
+	const targets = servers.filter(
 		(a) =>
 			ns.getServerMaxMoney(a) != 0 &&
 			ns.getServerRequiredHackingLevel(a) < ns.getHackingLevel() / 2,
 	);
 
 	// calculate needed threads and optimal action for targets
-	for (var target of targets) {
-		var hack_perc = Math.min(
+	for (let target of targets) {
+		const hackPerc = Math.min(
 			ns.getHackingLevel() / 13.33 / ns.getServerRequiredHackingLevel(target),
 			0.75,
 		); // scales from 0.15 at 2x required hacking level to 0.75 at 10x required hacking level
 
 		// skip target if scripts were deployed in a previous run to prevent overlaps
-		var in_progress = servers.some(
+		const inProgress = servers.some(
 			(host) =>
-				ns.isRunning(SCRIPT_BASE + "weaken.js", host, target) ||
-				ns.isRunning(SCRIPT_BASE + "grow.js", host, target) ||
-				ns.isRunning(SCRIPT_BASE + "hack.js", host, target),
+				ns.isRunning(scriptBase + "weaken.js", host, target) ||
+				ns.isRunning(scriptBase + "grow.js", host, target) ||
+				ns.isRunning(scriptBase + "hack.js", host, target),
 		);
-		if (in_progress) continue;
+		if (inProgress) continue;
 
 		// define current and target values
-		var current_money = ns.getServerMoneyAvailable(target);
-		var current_security = ns.getServerSecurityLevel(target);
+		const currentMoney = ns.getServerMoneyAvailable(target);
+		const currentSecurity = ns.getServerSecurityLevel(target);
 
-		var money_target = ns.getServerMaxMoney(target) * 0.95;
-		var security_target = ns.getServerMinSecurityLevel(target) * 1.25;
+		const moneyTarget = ns.getServerMaxMoney(target) * 0.95;
+		const securityTarget = ns.getServerMinSecurityLevel(target) * 1.25;
 
 		// calculate needed threads for required action
-		var WEAKEN_THREADS = Math.ceil(
-			(current_security - security_target) / ns.weakenAnalyze(1),
+		const weakenThreads = Math.ceil(
+			(currentSecurity - securityTarget) / ns.weakenAnalyze(1),
 		);
-		let grow_threads = 5;
-		if (current_money != 0) {
-			grow_threads = Math.ceil(
-				ns.growthAnalyze(target, ns.getServerMaxMoney(target) / current_money),
+		let growThreads = 5;
+		if (currentMoney != 0) {
+			growThreads = Math.ceil(
+				ns.growthAnalyze(target, ns.getServerMaxMoney(target) / currentMoney),
 			);
 		}
-		const HACK_THREADS = Math.ceil(hack_perc / ns.hackAnalyze(target));
+		const hackThreads = Math.ceil(hackPerc / ns.hackAnalyze(target));
 
 		// execute action on available host servers
-		if (current_security > security_target && WEAKEN_THREADS > 0) {
-			execute(ns, "weaken", target, WEAKEN_THREADS);
-		} else if (current_money < money_target && grow_threads > 0) {
-			execute(ns, "grow", target, grow_threads);
-		} else if (HACK_THREADS > 0) {
-			execute(ns, "hack", target, HACK_THREADS);
+		if (currentSecurity > securityTarget && weakenThreads > 0) {
+			execute(ns, "weaken", target, weakenThreads);
+		} else if (currentMoney < moneyTarget && growThreads > 0) {
+			execute(ns, "grow", target, growThreads);
+		} else if (hackThreads > 0) {
+			execute(ns, "hack", target, hackThreads);
 		}
 	}
 
 	// use free RAM on servers
-	for (var server of servers.filter((a) => a != "home")) {
-		if (SHARE_SERVERS.includes(server)) {
-			var script_path = SCRIPT_BASE + "share.js";
+	for (let server of servers.filter((a) => a != "home")) {
+		let scriptPath = "";
+		if (shareServers.includes(server)) {
+			let scriptPath = scriptBase + "share.js";
 		} else {
-			var script_path = SCRIPT_BASE + "xp.js";
+			let scriptPath = scriptBase + "xp.js";
 		}
 
-		var script_ram = ns.getScriptRam(script_path);
+		const scriptRam = ns.getScriptRam(scriptPath);
 
-		if (!ns.fileExists(script_path, server)) {
-			ns.scp(script_path, server);
+		if (!ns.fileExists(scriptPath, server)) {
+			ns.scp(scriptPath, server);
 		}
 
-		var threads = Math.floor(
-			(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) / script_ram,
+		const threads = Math.floor(
+			(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) / scriptRam,
 		);
 
 		if (threads > 0) {
-			ns.exec(script_path, server, threads);
+			ns.exec(scriptPath, server, threads);
 		}
 	}
 }
@@ -96,40 +97,40 @@ export function deploy(ns: NS) {
  * @param {NS} ns - The Bitburner API object.
  * @param {string} action - The action to execute ("weaken", "grow", or "hack").
  * @param {string} target - The target server for the action.
- * @param {number} total_needed_threads - The total number of threads needed for the action.
+ * @param {number} totalNeededThreads - The total number of threads needed for the action.
  */
-function execute(ns: NS, action: string, target: string, total_needed_threads: number) {
-	const SCRIPT_PATH = SCRIPT_BASE + action + ".js";
-	var SCRIPT_RAM = ns.getScriptRam(SCRIPT_PATH);
-	let needed_threads = total_needed_threads;
+function execute(ns: NS, action: string, target: string, totalNeededThreads: number) {
+	const scriptPath = scriptBase + action + ".js";
+	const scriptRam = ns.getScriptRam(scriptPath);
+	let neededThreads = totalNeededThreads;
 
-	var servers = scanServers(ns)["hasRootAccess"];
+	const servers = scanServers(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
 
-	for (var host of servers) {
-		ns.scriptKill(SCRIPT_BASE + "xp.js", host);
-		var available_ram =
+	for (let host of servers) {
+		ns.scriptKill(scriptBase + "xp.js", host);
+		const availableRam =
 			(host != "home"
 				? ns.getServerMaxRam(host)
 				: ns.getServerMaxRam(host) - 64) - ns.getServerUsedRam(host);
-		var host_cores = ns.getServer(host).cpuCores;
+		const hostCores = ns.getServer(host).cpuCores;
 
-		if (needed_threads > 0) {
-			if (!ns.fileExists(SCRIPT_PATH, host)) {
-				ns.scp(SCRIPT_PATH, host);
+		if (neededThreads > 0) {
+			if (!ns.fileExists(scriptPath, host)) {
+				ns.scp(scriptPath, host);
 			}
 
-			var available_threads = Math.floor(available_ram / SCRIPT_RAM);
-			var deployed_threads = Math.min(
-				Math.floor(needed_threads / host_cores),
-				available_threads,
+			const availableThreads = Math.floor(availableRam / scriptRam);
+			const deployedThreads = Math.min(
+				Math.floor(neededThreads / hostCores),
+				availableThreads,
 			);
 
-			if (deployed_threads <= 0) {
+			if (deployedThreads <= 0) {
 				continue;
 			} else {
-				ns.exec(SCRIPT_PATH, host, deployed_threads, target);
-				needed_threads -= deployed_threads * host_cores;
+				ns.exec(scriptPath, host, deployedThreads, target);
+				neededThreads -= deployedThreads * hostCores;
 			}
 		} else return; // no more scripts need to be ran for this target
 	}

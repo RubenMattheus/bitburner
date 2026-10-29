@@ -1,13 +1,9 @@
 import { NS } from "@ns";
-// LOGGING
-import { setup_log } from "./setup-log";
-// SERVERS
-import { setup_tor, nuke, backdoor } from "../servers/server-access";
-import { manage_servers } from "../servers/server-upgrade";
-// HACKING
+import { setupLog } from "./setup-log";
+import { setupTor, nuke, backdoor } from "../servers/server-access";
+import { manageServers } from "../servers/server-upgrade";
 import { deploy } from "../hacking/orchestrator";
-// MECHANICS
-import { join_factions, buy_augmentations } from "../mechanics/factions";
+import { joinFactions, buyAugmentations } from "../mechanics/factions";
 
 /**
  * Perform all hacking-related tasks, including server management, faction work, and augmentation purchasing.
@@ -18,18 +14,18 @@ import { join_factions, buy_augmentations } from "../mechanics/factions";
  */
 export async function main(ns: NS): Promise<void> {
 	async function hacking() {
-		setup_tor(ns);
+		setupTor(ns);
 		nuke(ns);
 		await backdoor(ns);
 		deploy(ns);
 
-		join_factions(ns);
-		buy_augmentations(ns);
+		joinFactions(ns);
+		buyAugmentations(ns);
 
-		manage_servers(ns);
+		manageServers(ns);
 	}
 
-	setup_log(ns);
+	setupLog(ns, true, 3, 8);
 
 	while (true) {
 		await hacking();

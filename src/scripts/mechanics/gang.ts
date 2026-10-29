@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { get_timestamp, get_target_time } from "../logging/timestamp";
+import { getTimestamp, getTargetTime } from "../logging/timestamp";
 
 /**
  * Prints the average chance to win clashes if the player is in a gang.
@@ -12,24 +12,24 @@ import { get_timestamp, get_target_time } from "../logging/timestamp";
  */
 export async function main(ns: NS): Promise<void> {
 	if (ns.gang.inGang()) {
-		var gangs = Object.keys(ns.gang.getAllGangInformation());
+		const gangs = Object.keys(ns.gang.getAllGangInformation());
 		gangs.splice(0, 1);
 
-		var avg_win = 0;
-		for (var gang of gangs) {
-			avg_win += ns.gang.getChanceToWinClash(gang);
+		let avgWin = 0;
+		for (let gang of gangs) {
+			avgWin += ns.gang.getChanceToWinClash(gang);
 		}
 
 		ns.tprint(
-			"Average chance to win clashes: " + (avg_win / gangs.length).toFixed(2),
+			"Average chance to win clashes: " + (avgWin / gangs.length).toFixed(2),
 		);
 	} else {
-		var karma = ns.getPlayer().karma;
+		const karma = ns.getPlayer().karma;
 		ns.tprint("Current karma: " + karma.toFixed(2));
-		var karma_needed = -54000 - karma;
+		const karmaNeeded = -54000 - karma;
 		ns.tprint(
 			"Lowering karma finishes at " +
-				get_target_time(-karma_needed * 1000) +
+				getTargetTime(-karmaNeeded * 1000) +
 				" if committing homicide",
 		);
 	}
@@ -40,9 +40,9 @@ export async function main(ns: NS): Promise<void> {
  *
  * @param {NS} ns - The Bitburner API object.
  */
-export function commit_crime(ns: NS) {
-	var work = ns.singularity.getCurrentWork();
-	var crime = work && work.type == "CRIME" ? work.crimeType : null;
+export function commitCrime(ns: NS) {
+	const work = ns.singularity.getCurrentWork();
+	const crime = work && work.type == "CRIME" ? work.crimeType : null;
 
 	if (ns.singularity.getCrimeChance("Homicide") > 0.5 && crime != "Homicide") {
 		ns.singularity.commitCrime("Homicide", false);
@@ -63,14 +63,14 @@ export function commit_crime(ns: NS) {
  * @param {NS} ns - The Bitburner API object.
  * @param {string} type - The type of gang to create if the player is not in a gang ("Hacking" or "Combat").
  */
-export function manage_gang(ns: NS, type: string) {
+export function manageGang(ns: NS, type: string) {
 	if (ns.gang.inGang()) {
-		recruit_members(ns);
+		recruitMembers(ns);
 
 		if (ns.gang.getGangInformation().isHacking) {
-			set_actions(ns, "Hacking");
+			setActions(ns, "Hacking");
 		} else {
-			set_actions(ns, "Combat");
+			setActions(ns, "Combat");
 		}
 	} else if (type == "Hacking" && ns.getPlayer().factions.includes("NiteSec")) {
 		ns.gang.createGang("NiteSec");
@@ -86,18 +86,18 @@ export function manage_gang(ns: NS, type: string) {
  *
  * @param {NS} ns - The Bitburner API object.
  */
-function recruit_members(ns: NS) {
-	const TIMESTAMP = get_timestamp();
-	for (var i in ns.gang.getMemberNames()) {
-		var member = ns.gang.getMemberNames()[i];
-		var new_name = "member" + String(Number(i) + 1);
-		if (member != new_name) {
-			ns.gang.renameMember(member, new_name);
+function recruitMembers(ns: NS) {
+	const TIMESTAMP = getTimestamp();
+	for (let i in ns.gang.getMemberNames()) {
+		const member = ns.gang.getMemberNames()[i];
+		const newName = "member" + String(Number(i) + 1);
+		if (member != newName) {
+			ns.gang.renameMember(member, newName);
 		}
 	}
 
 	while (ns.gang.canRecruitMember()) {
-		var name = "member" + String(ns.gang.getMemberNames().length + 1);
+		const name = "member" + String(ns.gang.getMemberNames().length + 1);
 		ns.gang.recruitMember(name);
 		ns.print(TIMESTAMP + " Recruited " + name + " to the gang");
 	}
@@ -109,13 +109,13 @@ function recruit_members(ns: NS) {
  * @param {NS} ns - The Bitburner API object.
  * @param {string} type - The type of gang ("Hacking" or "Combat").
  */
-function set_actions(ns: NS, type: string) {
-	var gang = ns.gang.getGangInformation();
-	var members = ns.gang.getMemberNames();
+function setActions(ns: NS, type: string) {
+	const gang = ns.gang.getGangInformation();
+	const members = ns.gang.getMemberNames();
 
 	// Check for ascensions
-	for (var member of members) {
-		check_ascension(ns, member, type == "Hacking" ? "Hacking" : "Combat");
+	for (let member of members) {
+		checkAscension(ns, member, type == "Hacking" ? "Hacking" : "Combat");
 	}
 
 	// Sort members based on their stats
@@ -128,90 +128,86 @@ function set_actions(ns: NS, type: string) {
 		});
 	} else {
 		members.sort(function (a, b) {
-			var member_a = ns.gang.getMemberInformation(a);
-			var a_combat = member_a.str + member_a.def + member_a.dex + member_a.agi;
+			const memberA = ns.gang.getMemberInformation(a);
+			const aCombat = memberA.str + memberA.def + memberA.dex + memberA.agi;
 
-			var member_b = ns.gang.getMemberInformation(b);
-			var b_combat = member_b.str + member_b.def + member_b.dex + member_b.agi;
-			return a_combat / 4 - b_combat / 4;
+			const memberB = ns.gang.getMemberInformation(b);
+			const bCombat = memberB.str + memberB.def + memberB.dex + memberB.agi;
+			return aCombat / 4 - bCombat / 4;
 		});
 	}
 	members.reverse();
 
 	// Divide members into three groups for task assignment
-	var div = Math.floor(members.length / 3);
-	var g1 = members.slice(0, div);
-	var g2 = members.slice(div, div * 2);
-	var g3 = members.slice(div * 2);
+	const div = Math.floor(members.length / 3);
+	const g1 = members.slice(0, div);
+	const g2 = members.slice(div, div * 2);
+	const g3 = members.slice(div * 2);
 
 	// Purchase equipment for members
-	for (var m of members) {
-		purchase_equipment(ns, m, type == "Hacking" ? "Hacking" : "Combat");
+	for (let m of members) {
+		purchaseEquipment(ns, m, type == "Hacking" ? "Hacking" : "Combat");
 	}
 
-	var combined_wanted_gain = get_combined_wanted_gain(ns, type, g1);
-	var can_win = can_win_clashes(ns);
+	const combinedWantedGain = getCombinedWantedGain(ns, type, g1);
+	const canWin = canWinClashes(ns);
 
 	// Set territory warfare based on clash win chance
-	if (can_win) {
+	if (canWin) {
 		ns.gang.setTerritoryWarfare(true);
 	} else {
 		ns.gang.setTerritoryWarfare(false);
 	}
-	var warfare = gang.territoryClashChance > 0;
+	const warfare = gang.territoryClashChance > 0;
 
 	// Check to see if there are no ongoing clashes but there is a need to raise win chance
 	if (
 		type == "Combat" &&
 		ns.gang.getMemberNames().length >= 12 &&
-		!can_win &&
+		!canWin &&
 		!warfare
 	) {
-		// Train combat if stats are low, else set action to territory warfare
-		for (var m of members) {
-			var info = ns.gang.getMemberInformation(m);
-			if (
-				info.str < info.str_asc_mult * 100 ||
-				info.def < info.def_asc_mult * 100 ||
-				info.dex < info.dex_asc_mult * 100 ||
-				info.agi < info.agi_asc_mult * 100
-			) {
-				ns.gang.setMemberTask(m, "Train Combat");
+		for (let m of members) {
+			ns.gang.setMemberTask(m, "Territory Warfare");
+		}
+	} else {
+		// Lower wanted level if it's too high, else raise reputation (if not max members) or raise money (if max members)
+		for (let m of g1) {
+			if (gang.wantedLevel - 1 > combinedWantedGain * -1) {
+				ns.gang.setMemberTask(
+					m,
+					type == "Hacking" ? "Ethical Hacking" : "Vigilante Justice",
+				);
+			} else if (ns.gang.getMemberNames().length < 12) {
+				ns.gang.setMemberTask(
+					m,
+					type == "Hacking" ? "Cyberterrorism" : "Terrorism",
+				);
 			} else {
-				ns.gang.setMemberTask(m, "Territory Warfare");
+				ns.gang.setMemberTask(
+					m,
+					type == "Hacking" ? "Money Laundering" : "Human Trafficking",
+				);
 			}
 		}
-		return;
-	}
 
-	// Lower wanted level if it's too high, else raise reputation (if not max members) or raise money (if max members)
-	for (var m of g1) {
-		if (gang.wantedLevel - 1 > combined_wanted_gain * -1) {
-			ns.gang.setMemberTask(
-				m,
-				type == "Hacking" ? "Ethical Hacking" : "Vigilante Justice",
-			);
-		} else if (ns.gang.getMemberNames().length < 12) {
-			ns.gang.setMemberTask(
-				m,
-				type == "Hacking" ? "Cyberterrorism" : "Terrorism",
-			);
-		} else {
-			ns.gang.setMemberTask(
-				m,
-				type == "Hacking" ? "Money Laundering" : "Human Trafficking",
-			);
+		// Lower wanted level if it's too high, else raise stats
+		for (let m of g2) {
+			if (gang.wantedLevel - 1 < combinedWantedGain * -1) {
+				ns.gang.setMemberTask(
+					m,
+					type == "Hacking" ? "Cyberterrorism" : "Terrorism",
+				);
+			} else {
+				ns.gang.setMemberTask(
+					m,
+					type == "Hacking" ? "Train Hacking" : "Train Combat",
+				);
+			}
 		}
-	}
 
-	// Lower wanted level if it's too high, else raise stats
-	for (var m of g2) {
-		if (gang.wantedLevel - 1 < combined_wanted_gain * -1) {
-			ns.gang.setMemberTask(
-				m,
-				type == "Hacking" ? "Cyberterrorism" : "Terrorism",
-			);
-		} else {
+		// Raise stats
+		for (let m of g3) {
 			ns.gang.setMemberTask(
 				m,
 				type == "Hacking" ? "Train Hacking" : "Train Combat",
@@ -219,14 +215,9 @@ function set_actions(ns: NS, type: string) {
 		}
 	}
 
-	// Raise stats
-	for (var m of g3) {
-		ns.gang.setMemberTask(m, type == "Hacking" ? "Train Hacking" : "Train Combat");
-	}
-
 	// Raise stats if recently ascended
-	for (var m of members) {
-		var info = ns.gang.getMemberInformation(m);
+	for (let m of members) {
+		const info = ns.gang.getMemberInformation(m);
 		if (type == "Hacking" && info.hack < info.hack_asc_mult * 100) {
 			ns.gang.setMemberTask(m, "Train Hacking");
 		} else if (
@@ -248,20 +239,20 @@ function set_actions(ns: NS, type: string) {
  * @param {string[]} members - The names of the gang members.
  * @returns {number} The combined wanted level gain of all members.
  */
-function get_combined_wanted_gain(ns: NS, type: string, members: string[]) {
-	var combined_wanted_gain = 0;
-	for (var member of members) {
+function getCombinedWantedGain(ns: NS, type: string, members: string[]): number {
+	let combinedWantedGain = 0;
+	for (let member of members) {
 		ns.gang.setMemberTask(
 			member,
 			type == "Hacking" ? "Ethical Hacking" : "Vigilante Justice",
 		);
-		combined_wanted_gain +=
+		combinedWantedGain +=
 			ns.gang.getMemberInformation(member).wantedLevelGain * 5 * 11; // cycle is 0.2 sec
 	}
 	if (ns.gang.getBonusTime() > 10000) {
-		combined_wanted_gain = combined_wanted_gain * 25;
+		combinedWantedGain = combinedWantedGain * 25;
 	}
-	return combined_wanted_gain;
+	return combinedWantedGain;
 }
 
 /**
@@ -270,16 +261,11 @@ function get_combined_wanted_gain(ns: NS, type: string, members: string[]) {
  * @param {NS} ns - The Bitburner API object.
  * @returns {boolean} True if the clash win chance is above 0.66 for all gangs, false otherwise.
  */
-function can_win_clashes(ns: NS): boolean {
-	var gangs = Object.keys(ns.gang.getAllGangInformation());
+function canWinClashes(ns: NS): boolean {
+	const gangs = Object.keys(ns.gang.getAllGangInformation());
 	gangs.splice(0, 1);
 
-	for (var g of gangs) {
-		if (ns.gang.getChanceToWinClash(g) < 0.66) {
-			return false;
-		}
-	}
-	return true;
+	return gangs.every((g) => ns.gang.getChanceToWinClash(g) > 0.66);
 }
 
 /**
@@ -289,25 +275,25 @@ function can_win_clashes(ns: NS): boolean {
  * @param {string} member - The name of the gang member to check for ascension.
  * @param {string} type - The type of gang ("Hacking" or "Combat").
  */
-function check_ascension(ns: NS, member: string, type: string) {
-	var result = ns.gang.getAscensionResult(member);
+function checkAscension(ns: NS, member: string, type: string) {
+	const result = ns.gang.getAscensionResult(member);
 
 	if (result == undefined) {
 		return;
 	}
 
-	var next = 2;
+	let next = 2;
 	if (type == "Hacking") {
 		while (next < ns.gang.getMemberInformation(member).hack_asc_mult) {
 			next *= 2;
 		}
 	}
 
-	var needed_result = next / ns.gang.getMemberInformation(member).hack_asc_mult;
+	const neededResult = next / ns.gang.getMemberInformation(member).hack_asc_mult;
 
-	if (type == "Hacking" && result.hack >= needed_result) {
+	if (type == "Hacking" && result.hack >= neededResult) {
 		ns.gang.ascendMember(member);
-		ns.print(get_timestamp() + " Ascended " + member);
+		ns.print(getTimestamp() + " Ascended " + member);
 	} else if (
 		result.str >= 2 ||
 		result.def >= 2 ||
@@ -315,7 +301,7 @@ function check_ascension(ns: NS, member: string, type: string) {
 		result.agi >= 2
 	) {
 		ns.gang.ascendMember(member);
-		ns.print(get_timestamp() + " Ascended " + member);
+		ns.print(getTimestamp() + " Ascended " + member);
 	}
 }
 
@@ -326,15 +312,15 @@ function check_ascension(ns: NS, member: string, type: string) {
  * @param {string} member - The name of the gang member to purchase equipment for.
  * @param {string} type - The type of gang ("Hacking" or "Combat") to determine which equipment to purchase.
  */
-function purchase_equipment(ns: NS, member: string, type: string) {
-	var equipment_list = ns.gang.getEquipmentNames();
+function purchaseEquipment(ns: NS, member: string, type: string) {
+	const equipmentList = ns.gang.getEquipmentNames();
 
-	for (var equipment of equipment_list) {
+	for (let equipment of equipmentList) {
 		if (ns.gang.getEquipmentCost(equipment) > ns.getPlayer().money * 0.5) {
 			continue;
 		}
 
-		var stats = ns.gang.getEquipmentStats(equipment);
+		const stats = ns.gang.getEquipmentStats(equipment);
 		if (type == "Hacking" && "hack" in stats) {
 			ns.gang.purchaseEquipment(member, equipment);
 		} else if (

@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { get_timestamp } from "../logging/timestamp";
+import { getTimestamp } from "../logging/timestamp";
 
 /**
  * Sets up the log for the main script.
@@ -7,18 +7,18 @@ import { get_timestamp } from "../logging/timestamp";
  * @param {NS} ns - The Bitburner API object.
  * @param {string} minimal - Whether to use minimal logging (default: true).
  */
-export function setup_log(ns: NS, minimal: boolean = true) {
+export function setupLog(ns: NS, minimal: boolean = true, x: number, y: number) {
 	if (minimal) {
 		ns.disableLog("ALL");
 	}
 
-	ns.print(get_timestamp() + " Launched main script");
+	ns.print(getTimestamp() + " Launched script");
 
-	const window_size = ns.ui.windowSize();
-	const tail_size = [window_size[0] / 3, window_size[1] / 3]; // width, height
-	const tail_coords = [window_size[0] / 1.8625, window_size[1] / 175]; // x, y
+	const windowSize = ns.ui.windowSize();
+	const tailSize = [windowSize[0] / 4, windowSize[1] / 10];
+	const tailCoords = [tailSize[0] * x, tailSize[1] * y];
 
 	ns.ui.openTail();
-	ns.ui.resizeTail(tail_size[0], tail_size[1]);
-	ns.ui.moveTail(tail_coords[0], tail_coords[1]);
+	ns.ui.resizeTail(tailSize[0], tailSize[1]);
+	ns.ui.moveTail(tailCoords[0], tailCoords[1]);
 }

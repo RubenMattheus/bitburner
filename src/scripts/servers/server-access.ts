@@ -1,13 +1,13 @@
 import { NS, FactionName, ProgramName } from "@ns";
-import { scanServers, find_server } from "./server-scan";
-import { get_timestamp } from "../logging/timestamp";
+import { scanServers, findServer } from "./server-scan";
+import { getTimestamp } from "../logging/timestamp";
 
 export function nuke(ns: NS) {
-	var timestamp = get_timestamp();
+	const timestamp = getTimestamp();
 
-	var no_root_access = scanServers(ns)["noRootAccess"];
+	const noRootAccess = scanServers(ns)["noRootAccess"];
 
-	for (var server of no_root_access) {
+	for (let server of noRootAccess) {
 		ns.brutessh(server);
 		ns.ftpcrack(server);
 		ns.relaysmtp(server);
@@ -20,49 +20,49 @@ export function nuke(ns: NS) {
 	}
 }
 
-export async function backdoor(ns: NS, finish_bitnode: boolean = true): Promise<void> {
-	var current_factions = ns.getPlayer().factions;
-	var current_invites = ns.singularity.checkFactionInvitations();
+export async function backdoor(ns: NS, finishBitnode: boolean = true): Promise<void> {
+	const currentFactions = ns.getPlayer().factions;
+	const currentInvites = ns.singularity.checkFactionInvitations();
 
-	var server_map: [string, string[]][] = [
-		["CyberSec", find_server(ns, "CSEC")],
-		["NiteSec", find_server(ns, "avmnite-02h")],
-		["The Black Hand", find_server(ns, "I.I.I.I")],
-		["BitRunners", find_server(ns, "run4theh111z")],
-		["Fulcrum Secret Technologies", find_server(ns, "fulcrumassets")],
-		["w0r1d_d43m0n", find_server(ns, "w0r1d_d43m0n")],
+	const serverMap: [string, string[]][] = [
+		["CyberSec", findServer(ns, "CSEC")],
+		["NiteSec", findServer(ns, "avmnite-02h")],
+		["The Black Hand", findServer(ns, "I.I.I.I")],
+		["BitRunners", findServer(ns, "run4theh111z")],
+		["Fulcrum Secret Technologies", findServer(ns, "fulcrumassets")],
+		["w0r1d_d43m0n", findServer(ns, "w0r1d_d43m0n")],
 	];
 
-	var paths = [];
+	const paths = [];
 
-	function backdoor_needed(faction_map: [string, string[]]) {
-		var faction = faction_map[0];
-		var path = faction_map[1];
+	function backdoorNeeded(factionMap: [string, string[]]) {
+		const faction = factionMap[0];
+		const path = factionMap[1];
 
-		var joined = current_factions.includes(faction as FactionName);
-		var invited = current_invites.includes(faction as FactionName);
+		const joined = currentFactions.includes(faction as FactionName);
+		const invited = currentInvites.includes(faction as FactionName);
 
-		var can_join =
+		const canJoin =
 			faction != "Fulcrum Secret Technologies" ||
 			ns.singularity.getCompanyRep("Fulcrum Technologies") < 400000;
-		var can_backdoor =
+		const canBackdoor =
 			ns.hasRootAccess(path[path.length - 1]) &&
 			ns.getServerRequiredHackingLevel(path[path.length - 1]) <=
 				ns.getHackingLevel();
 
-		return !joined && !invited && can_join && can_backdoor;
+		return !joined && !invited && canJoin && canBackdoor;
 	}
 
-	for (var f of server_map) {
-		if (backdoor_needed(f)) {
+	for (let f of serverMap) {
+		if (backdoorNeeded(f)) {
 			paths.push(f[1]);
-		} else if (f[0] == "w0r1d_d43m0n" && f[1] != undefined && finish_bitnode) {
+		} else if (f[0] == "w0r1d_d43m0n" && f[1] != undefined && finishBitnode) {
 			// target is undefined when w0r1d_d43m0n isn't visible yet
 			paths.push(f[1]);
 		}
 	}
 
-	for (var p of paths) {
+	for (let p of paths) {
 		if (p.length == 0) {
 			continue;
 		}
@@ -78,9 +78,9 @@ export async function backdoor(ns: NS, finish_bitnode: boolean = true): Promise<
 	}
 }
 
-export function setup_tor(ns: NS) {
+export function setupTor(ns: NS) {
 	if (ns.singularity.purchaseTor()) {
-		for (var exe of [
+		for (let exe of [
 			"BruteSSH.exe",
 			"FTPCrack.exe",
 			"relaySMTP.exe",

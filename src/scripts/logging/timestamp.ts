@@ -3,18 +3,18 @@
  *
  * @returns {string} The current timestamp formatted as "[HH:MM:SS]".
  */
-export function get_timestamp(): string {
-	var d = new Date();
+export function getTimestamp(): string {
+	const d = new Date();
 
-	var timestamp_string = convert_date(d);
+	const timestampString = convertDate(d);
 
-	var timestamp =
+	const timestamp =
 		"[" +
-		timestamp_string["hour"] +
+		timestampString["hour"] +
 		":" +
-		timestamp_string["minute"] +
+		timestampString["minute"] +
 		":" +
-		timestamp_string["second"] +
+		timestampString["second"] +
 		"]";
 	return timestamp;
 }
@@ -25,27 +25,27 @@ export function get_timestamp(): string {
  * @param {Date} date - The Date object to convert.
  * @returns {Object} An object containing the formatted time components.
  */
-function convert_date(date: Date): { hour: string; minute: string; second: string } {
-	var hour = date.getHours();
-	var minute = date.getMinutes();
-	var second = date.getSeconds();
+function convertDate(date: Date): { hour: string; minute: string; second: string } {
+	const hour = date.getHours();
+	const minute = date.getMinutes();
+	const second = date.getSeconds();
 
-	var hour_string = String(hour);
+	let hourString = String(hour);
 	if (hour < 10) {
-		hour_string = "0" + String(hour);
+		hourString = "0" + String(hour);
 	}
 
-	var minute_string = String(minute);
+	let minuteString = String(minute);
 	if (minute < 10) {
-		minute_string = "0" + String(minute);
+		minuteString = "0" + String(minute);
 	}
 
-	var second_string = String(second);
+	let secondString = String(second);
 	if (second < 10) {
-		second_string = "0" + String(second);
+		secondString = "0" + String(second);
 	}
 
-	return { hour: hour_string, minute: minute_string, second: second_string };
+	return { hour: hourString, minute: minuteString, second: secondString };
 }
 
 /**
@@ -54,18 +54,18 @@ function convert_date(date: Date): { hour: string; minute: string; second: strin
  * @param {number} ms - The delay in milliseconds.
  * @returns {string} The timestamp for the future time formatted as "HH:MM:SS".
  */
-export function get_target_time(ms: number): string {
-	var d = new Date();
-	var current_ms = d.getMilliseconds();
-	d.setMilliseconds(current_ms + ms);
+export function getTargetTime(ms: number): string {
+	const d = new Date();
+	const currentMs = d.getMilliseconds();
+	d.setMilliseconds(currentMs + ms);
 
-	var timestamp_string = convert_date(d);
+	const timestampString = convertDate(d);
 
-	var timestamp =
-		timestamp_string["hour"] +
+	const timestamp =
+		timestampString["hour"] +
 		":" +
-		timestamp_string["minute"] +
+		timestampString["minute"] +
 		":" +
-		timestamp_string["second"];
+		timestampString["second"];
 	return timestamp;
 }
