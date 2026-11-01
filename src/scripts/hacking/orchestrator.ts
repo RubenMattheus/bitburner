@@ -2,7 +2,6 @@ import { NS } from "@ns";
 import { scan } from "../servers/scan";
 
 const scriptBase = "/scripts/hacking/actions/";
-const shareServers = ["server_21", "server_22", "server_23", "server_24", "server_25"];
 
 /**
  * Orchestrator function that manages the deployment of hacking scripts across servers with root access.
@@ -69,7 +68,9 @@ export function deploy(ns: NS) {
 	// use free RAM on servers
 	for (let server of servers.filter((a) => a != "home")) {
 		let scriptPath = "";
-		if (shareServers.includes(server)) {
+		const cloudServers = ns.cloud.getServerNames();
+
+		if (cloudServers.slice(-Math.floor(cloudServers.length / 5)).includes(server)) {
 			scriptPath = scriptBase + "share.js";
 		} else {
 			scriptPath = scriptBase + "xp.js";

@@ -98,23 +98,22 @@ function pickAction(ns: NS) {
 	];
 
 	if (currentStamina < maxStamina / 2) {
-		ns.bladeburner.startAction("General", "Training");
-		return;
+		return ns.bladeburner.startAction("General", "Training");
 	} else if (startBlackOp(ns) == true) {
-		return;
+		return true;
 	} else if (
 		(ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1.25e9 ||
 			accuracyNeeded(ns)) &&
 		performAction(ns, dataAccuracyActions) == true
 	) {
+		return true;
 	} else if (
 		ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) > 1.25e9 &&
 		performAction(ns, retirementActions) == true
 	) {
-		return;
+		return true;
 	} else {
-		generateWork(ns);
-		return;
+		return generateWork(ns);
 	}
 }
 
@@ -150,7 +149,7 @@ function performAction(ns: NS, actions: string[][]): boolean {
 				ns.bladeburner.getActionCountRemaining(
 					a[1] as BladeburnerActionType,
 					a[0] as BladeburnerActionName,
-				) > 100 &&
+				) > 50 &&
 				ns.bladeburner.getActionEstimatedSuccessChance(
 					a[1] as BladeburnerActionType,
 					a[0] as BladeburnerActionName,
@@ -226,16 +225,10 @@ function lowerChaos(ns: NS) {
 		"Stealth Retirement Operation",
 	);
 	const succes = (chance[0] + chance[1]) / 2;
-	if (
-		succes >= 0.66 &&
-		currentPopulation >= 1e9 &&
-		currentAction != "Stealth Retirement Operation" &&
-		ns.bladeburner.getActionCountRemaining(
-			"Operations",
-			"Stealth Retirement Operation",
-		) >= 100
-	) {
-		ns.bladeburner.startAction("Operations", "Stealth Retirement Operation");
+	if (succes >= 0.66 && currentPopulation >= 1e9) {
+		if (currentAction != "Stealth Retirement Operation") {
+			ns.bladeburner.startAction("Operations", "Stealth Retirement Operation");
+		}
 	} else if (currentAction != "Diplomacy") {
 		ns.bladeburner.startAction("General", "Diplomacy");
 	}
@@ -245,10 +238,13 @@ function lowerChaos(ns: NS) {
  * Sets current action to "Incite Violence" if it is not already the current action.
  *
  * @param {NS} ns - The Bitburner API object.
+ * @returns {boolean} True if "Incite Violence" was succesfully started or already in progress, and false if otherwise
  */
-function generateWork(ns: NS) {
+function generateWork(ns: NS): boolean {
 	if (ns.bladeburner.getCurrentAction()?.name != "Incite Violence") {
-		ns.bladeburner.startAction("General", "Incite Violence");
+		return ns.bladeburner.startAction("General", "Incite Violence");
+	} else {
+		return true;
 	}
 }
 
