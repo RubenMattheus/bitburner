@@ -1,4 +1,10 @@
-import { NS, CityName, BladeburnerActionType, BladeburnerActionName } from "@ns";
+import {
+	NS,
+	CityName,
+	BladeburnerActionType,
+	BladeburnerActionName,
+	BladeburnerSkillName,
+} from "@ns";
 
 const CITIES = ["Sector-12", "Chongqing", "New Tokyo", "Ishima", "Aevum", "Volhaven"];
 
@@ -97,16 +103,34 @@ function pickAction(ns: NS) {
 	} else if (startBlackOp(ns) == true) {
 		return;
 	} else if (
-		ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) > 1.25e9
+		(ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1.25e9 ||
+			accuracyNeeded(ns)) &&
+		performAction(ns, dataAccuracyActions) == true
 	) {
-		if (performAction(ns, retirementActions) == true) {
-			return;
-		}
-	} else if (performAction(ns, dataAccuracyActions) == true) {
+	} else if (
+		ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) > 1.25e9 &&
+		performAction(ns, retirementActions) == true
+	) {
 		return;
 	} else {
 		generateWork(ns);
 		return;
+	}
+}
+
+function accuracyNeeded(ns: NS): boolean {
+	const nextBlackOp = ns.bladeburner.getNextBlackOp();
+	if (nextBlackOp == null) {
+		return false;
+	}
+	const chance = ns.bladeburner.getActionEstimatedSuccessChance(
+		"Black Operations",
+		nextBlackOp.name,
+	);
+	if (chance[0] != chance[1]) {
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -234,52 +258,65 @@ function generateWork(ns: NS) {
  * @param {NS} ns - The Bitburner API object.
  */
 function upgradeSkills(ns: NS) {
-	while (true) {
-		let skills = ns.bladeburner.getSkillNames();
-
-		// level cap 0
-		skills = skills.filter((skill) => !["Hands of Midas"].includes(skill));
-
-		// level cap 5
-		skills = skills.filter(
-			(skill) =>
-				!["Tracer"].includes(skill) || ns.bladeburner.getSkillLevel(skill) < 5,
+	// const tier0 = ["Overclock"];
+	const tier1 = [
+		"Blade's Intuition",
+		"Cloak",
+		"Short-Circuit",
+		"Digital Observer",
+		"Reaper",
+		"Evasive System",
+		"Hyperdrive",
+	].sort((a, b) => {
+		return (
+			ns.bladeburner.getSkillLevel(a as BladeburnerSkillName) -
+			ns.bladeburner.getSkillLevel(b as BladeburnerSkillName)
 		);
-
-		// level cap 10
-		skills = skills.filter(
-			(skill) =>
-				!["Datamancer", "Cyber's Edge"].includes(skill) ||
-				ns.bladeburner.getSkillLevel(skill) < 10,
+	});
+	const tier2 = ["Datamancer", "Cyber's Edge"].sort((a, b) => {
+		return (
+			ns.bladeburner.getSkillLevel(a as BladeburnerSkillName) -
+			ns.bladeburner.getSkillLevel(b as BladeburnerSkillName)
 		);
+	});
+	const tier3 = ["Tracer"];
+	// const tier4 = ["Hands of Midas"];
 
-		// no level cap
-		skills = skills.filter(
-			(skill) =>
-				![
-					"Blade's Intuition",
-					"Cloak",
-					"Short-Circuit",
-					"Digital Observer",
-					"Reaper",
-					"Evasive System",
-					"Hyperdrive",
-				].includes(skill) ||
-				ns.bladeburner.getSkillLevel(skill) <
-					ns.bladeburner.getSkillLevel("Overclock") / 3 ||
-				ns.bladeburner.getSkillLevel("Overclock") == 90,
-		);
+	const overclockLevel = ns.bladeburner.getSkillLevel("Overclock");
+	// Tier 1: Level has to be lower than one third of skill "Overclock"
+	const tier1Filtered = tier1.filter(
+		(s) =>
+			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) <
+			overclockLevel / 3,
+	);
+	// Tier 2: Level has to be lower than one fifth of skill "Overclock" and is capped at level 10
+	const tier2Filtered = tier2.filter(
+		(s) =>
+			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) <
+				overclockLevel / 5 &&
+			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < 10,
+	);
+	// Tier 3 (earlygame): Level has to be lower than skill "Overclock" and is capped at level 5
+	const tier3Filtered = tier3.filter(
+		(s) =>
+			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < overclockLevel &&
+			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < 5,
+	);
 
-		if (ns.bladeburner.getSkillLevel("Overclock") == 90) {
-			skills = skills.filter((skill) => skill != "Overclock");
+	const skillsToUpgrade = tier1Filtered.concat(tier2Filtered, tier3Filtered);
+
+	if (ns.bladeburner.getSkillLevel("Overclock") < 90) {
+		for (let s of skillsToUpgrade) {
+			if (!ns.bladeburner.upgradeSkill(s as BladeburnerSkillName)) {
+				return;
+			}
 		}
-
-		skills.sort((a, b) => {
-			return ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b);
-		});
-
-		if (!ns.bladeburner.upgradeSkill(skills[0])) {
-			return;
+		ns.bladeburner.upgradeSkill("Overclock");
+	} else {
+		for (let s of tier1) {
+			if (!ns.bladeburner.upgradeSkill(s as BladeburnerSkillName)) {
+				return;
+			}
 		}
 	}
 }

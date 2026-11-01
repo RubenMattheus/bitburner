@@ -32,15 +32,19 @@ export function manageHacknetNodes(ns: NS) {
 }
 
 function purchaseHacknetNodes(ns: NS) {
-	while (ns.getPlayer().money * 0.1 > ns.hacknet.getPurchaseNodeCost()) {
+	if (ns.getPlayer().money * 0.1 > ns.hacknet.getPurchaseNodeCost()) {
 		const nodeIndex = ns.hacknet.purchaseNode();
 		ns.print(getTimestamp() + " Purchased hacknet-node-" + nodeIndex);
 	}
 }
 
 function upgradeLevel(ns: NS, index: number) {
-	if (ns.getPlayer().money * 0.1 > ns.hacknet.getLevelUpgradeCost(index, 10)) {
-		ns.hacknet.upgradeLevel(index, 10);
+	const levelCount = Math.min(10, 200 - ns.hacknet.getNodeStats(index).level);
+	if (
+		ns.getPlayer().money * 0.1 >
+		ns.hacknet.getLevelUpgradeCost(index, levelCount)
+	) {
+		ns.hacknet.upgradeLevel(index, levelCount);
 	}
 }
 

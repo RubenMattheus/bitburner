@@ -66,12 +66,7 @@ export function commitCrime(ns: NS) {
 export function manageGang(ns: NS, type: string) {
 	if (ns.gang.inGang()) {
 		recruitMembers(ns);
-
-		if (ns.gang.getGangInformation().isHacking) {
-			setActions(ns, "Hacking");
-		} else {
-			setActions(ns, "Combat");
-		}
+		setActions(ns, type);
 	} else if (type == "Hacking" && ns.getPlayer().factions.includes("NiteSec")) {
 		ns.gang.createGang("NiteSec");
 	} else if (type == "Combat" && ns.getPlayer().factions.includes("Slum Snakes")) {
@@ -87,7 +82,6 @@ export function manageGang(ns: NS, type: string) {
  * @param {NS} ns - The Bitburner API object.
  */
 function recruitMembers(ns: NS) {
-	const TIMESTAMP = getTimestamp();
 	for (let i in ns.gang.getMemberNames()) {
 		const member = ns.gang.getMemberNames()[i];
 		const newName = "member" + String(Number(i) + 1);
@@ -99,7 +93,7 @@ function recruitMembers(ns: NS) {
 	while (ns.gang.canRecruitMember()) {
 		const name = "member" + String(ns.gang.getMemberNames().length + 1);
 		ns.gang.recruitMember(name);
-		ns.print(TIMESTAMP + " Recruited " + name + " to the gang");
+		ns.print(getTimestamp() + " Recruited " + name + " to the gang");
 	}
 }
 
@@ -316,7 +310,7 @@ function purchaseEquipment(ns: NS, member: string, type: string) {
 	const equipmentList = ns.gang.getEquipmentNames();
 
 	for (let equipment of equipmentList) {
-		if (ns.gang.getEquipmentCost(equipment) > ns.getPlayer().money * 0.5) {
+		if (ns.gang.getEquipmentCost(equipment) > ns.getPlayer().money * 0.083) {
 			continue;
 		}
 

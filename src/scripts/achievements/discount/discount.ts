@@ -1,6 +1,6 @@
 import { NS } from "@ns";
-import { find_server } from "../../servers/server-scan";
+import { findServer } from "../../servers/scan";
 
 export async function main(ns: NS): Promise<void> {
-	ns.tprint(find_server(ns, "powerhouse-fitness"));
+	ns.tprint(findServer(ns, "powerhouse-fitness"));
 }

@@ -1,4 +1,5 @@
 import { NS, FactionName } from "@ns";
+import { getTimestamp } from "../logging/timestamp";
 
 const earlygameFactions = ["Tian Di Hui", "Netburners", "Shadows of Anarchy"];
 const cityFactions = [
@@ -52,7 +53,7 @@ const FACTIONS = earlygameFactions.concat(
 export async function main(ns: NS): Promise<void> {
 	ns.tprint("--- UNIQUE ---");
 
-	const unique = getUniqueAugmentations(ns, getRemainingAugmentations(ns));
+	const unique = getUniqueAugmentations(ns, getAugmentations(ns, false));
 	unique.sort(function (a, b) {
 		return (
 			ns.singularity.getAugmentationRepReq(a) -
@@ -95,22 +96,67 @@ export async function main(ns: NS): Promise<void> {
 	printList("Rep");
 }
 
+export async function manageFactions(ns: NS, minAugmentationAmount: number) {
+	joinCityFactions(ns);
+	acceptInvites(ns);
+	purchaseAvailableAugmentations(ns, minAugmentationAmount);
+	await installAugmentations(ns, minAugmentationAmount);
+}
+
 // ----------------- //
 // FACTION FUNCTIONS //
 // ----------------- //
+
+export function getNextFaction(ns: NS) {
+	const factions = ns.getPlayer().factions;
+	const toExclude = ["Bladeburners"];
+
+	if (ns.gang.inGang()) {
+		toExclude.push(ns.gang.getGangInformation().faction);
+	}
+
+	return factions
+		.filter(
+			(f) =>
+				!toExclude.includes(f) &&
+				getRemainingAugmentationsFromFaction(ns, f).length > 0 &&
+				ns.singularity.getFactionFavor(f) +
+					ns.singularity.getFactionFavorGain(f) <
+					150,
+		)
+		.sort(
+			(a, b) =>
+				getRemainingAugmentationsFromFaction(ns, b).length -
+				getRemainingAugmentationsFromFaction(ns, a).length,
+		)[0];
+}
+
+export function factionWork(ns: NS): boolean {
+	if (ns.singularity.workForFaction(getNextFaction(ns), "security", false)) {
+		return true;
+	} else if (ns.singularity.workForFaction(getNextFaction(ns), "field", false)) {
+		return true;
+	} else if (ns.singularity.workForFaction(getNextFaction(ns), "hacking", false)) {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 /**
  * Join faction if faction either has no enemies or is the next faction in the faction order.
  *
  * @param {NS} ns - The Bitburner API object.
  */
-export function joinFactions(ns: NS) {
+function acceptInvites(ns: NS) {
 	const invitations = ns.singularity.checkFactionInvitations();
 
 	for (let f of invitations) {
-		if (ns.singularity.getFactionEnemies(f).length == 0) {
-			ns.singularity.joinFaction(f);
-		} else if (f == getNextFaction(ns)) {
+		const factionAugmentations = getRemainingAugmentationsFromFaction(ns, f);
+		if (
+			ns.singularity.getFactionEnemies(f).length == 0 ||
+			factionAugmentations.length > 0
+		) {
 			ns.singularity.joinFaction(f);
 		}
 	}
@@ -120,99 +166,56 @@ export function joinFactions(ns: NS) {
  * Travels to all cities in a specified region
  *
  * @param {NS} ns - The Bitburner API object.
- * @param {string} region - The region to travel to ("west", "center", or "east").
  */
-export function travel(ns: NS, region: string) {
-	switch (region) {
-		case "west":
+function joinCityFactions(ns: NS) {
+	const player = ns.getPlayer();
+	const playerFactions = player.factions;
+	const westCheck =
+		getRemainingAugmentationsFromFaction(ns, "Sector-12", false).length > 0 ||
+		getRemainingAugmentationsFromFaction(ns, "Aevum", false).length > 0;
+	const centerCheck =
+		getRemainingAugmentationsFromFaction(ns, "Volhaven", false).length > 0;
+	const eastCheck =
+		getRemainingAugmentationsFromFaction(ns, "Chongqing", false).length > 0 ||
+		getRemainingAugmentationsFromFaction(ns, "New Tokyo", false).length > 0 ||
+		getRemainingAugmentationsFromFaction(ns, "Ishima", false).length > 0;
+
+	if (westCheck && player.money > 45e6) {
+		if (!playerFactions.includes("Sector-12")) {
 			ns.singularity.travelToCity("Sector-12");
+			ns.singularity.joinFaction("Sector-12");
+		}
+		if (!playerFactions.includes("Aevum")) {
 			ns.singularity.travelToCity("Aevum");
-			break;
-		case "center":
+			ns.singularity.joinFaction("Aevum");
+		}
+	} else if (centerCheck && player.money > 55e6) {
+		if (!playerFactions.includes("Volhaven")) {
 			ns.singularity.travelToCity("Volhaven");
-			break;
-		case "east":
+			ns.singularity.joinFaction("Volhaven");
+		}
+	} else if (eastCheck && player.money > 35e6) {
+		if (!playerFactions.includes("Chongqing")) {
 			ns.singularity.travelToCity("Chongqing");
+			ns.singularity.joinFaction("Chongqing");
+		}
+		if (!playerFactions.includes("New Tokyo")) {
 			ns.singularity.travelToCity("New Tokyo");
+			ns.singularity.joinFaction("New Tokyo");
+		}
+		if (!playerFactions.includes("Ishima")) {
 			ns.singularity.travelToCity("Ishima");
-			break;
+			ns.singularity.joinFaction("Ishima");
+		}
 	}
-}
 
-/**
- * Sets player action to work for the next faction in the faction order if the player has not yet reached 150 favor with that faction.
- *
- * @param {NS} ns - The Bitburner API object.
- */
-export function factionWork(ns: NS) {
-	const target = getNextFaction(ns) as FactionName;
-	const totalFavor =
-		ns.singularity.getFactionFavor(target) +
-		ns.singularity.getFactionFavorGain(target);
-	if (totalFavor < 150) {
-		ns.singularity.workForFaction(target, "hacking", false);
-	}
-}
-
-/**
- * Returns the next faction in the faction order that has unowned augmentations, excluding the player's current gang faction.
- *
- * @param {NS} ns - The Bitburner API object.
- * @returns {string} The name of the next faction in the faction order that has unowned augmentations.
- */
-export function getNextFaction(ns: NS): string {
-	const factionOrder = [
-		"CyberSec",
-		"NiteSec",
-		"The Black Hand",
-		"BitRunners",
-		"Daedalus",
-	];
 	if (
-		ns.gang.inGang() &&
-		factionOrder.includes(ns.gang.getGangInformation().faction)
+		!playerFactions.includes("Tian Di Hui") &&
+		player.skills.hacking > 50 &&
+		player.money > 2e9
 	) {
-		factionOrder.splice(
-			factionOrder.indexOf(ns.gang.getGangInformation().faction),
-			1,
-		);
+		ns.singularity.travelToCity("Chongqing");
 	}
-
-	const augSelection = getRemainingAugmentations(ns);
-
-	for (let f of factionOrder) {
-		if (
-			ns.singularity
-				.getAugmentationsFromFaction(f as FactionName)
-				.some((a) => augSelection.includes(a))
-		) {
-			return f;
-		}
-	}
-	return factionOrder[factionOrder.length - 1];
-}
-
-/**
- * Returns the faction with the highest reputation, excluding the player's current gang faction.
- *
- * @param {NS} ns - The Bitburner API object.
- * @returns {string} The name of the faction with the highest reputation.
- */
-export function getHighestFaction(ns: NS): string {
-	const factions = ns.getPlayer().factions;
-
-	if (ns.gang.inGang()) {
-		const index = factions.indexOf(ns.gang.getGangInformation().faction);
-		if (index != -1) {
-			factions.splice(index, 1);
-		}
-	}
-
-	return factions
-		.sort(function (a, b) {
-			return ns.singularity.getFactionRep(a) - ns.singularity.getFactionRep(b);
-		})
-		.reverse()[0];
 }
 
 // ---------------------- //
@@ -220,17 +223,21 @@ export function getHighestFaction(ns: NS): string {
 // ---------------------- //
 
 /**
- * Returns the list of augmentations that are not yet owned by the player.
+ * Returns the list of augmentations with the option to exclude already owned augmentations.
  *
  * @param {NS} ns - The Bitburner API object.
+ * @param {boolean} includeOwned - Whether the player's augmentations should be included or excluded
  * @returns {string[]} The list of augmentations that are not yet owned by the player.
  */
-export function getRemainingAugmentations(ns: NS): string[] {
+function getAugmentations(ns: NS, includeOwned: boolean = true): string[] {
 	const aug: string[] = [];
 
 	for (let f of FACTIONS) {
 		for (let a of ns.singularity.getAugmentationsFromFaction(f as FactionName)) {
-			if (ns.singularity.getOwnedAugmentations(true).includes(a)) {
+			if (
+				ns.singularity.getOwnedAugmentations(true).includes(a) &&
+				includeOwned == false
+			) {
 				continue;
 			}
 
@@ -254,10 +261,10 @@ export function getRemainingAugmentations(ns: NS): string[] {
  * @param {string} type - The type of augmentations to select.
  * @returns {string[]} The list of augmentations of the specified type that are not yet owned by the player.
  */
-export function getAugmentationSelection(ns: NS, type: string): string[] {
-	const aug = getRemainingAugmentations(ns);
+function getAugmentationSelection(ns: NS, type: string): string[] {
+	const augmentations = getAugmentations(ns, false);
 
-	function selectHacking(a: string) {
+	function hackingFilter(a: string) {
 		const modifiers = ns.singularity.getAugmentationStats(a);
 		return (
 			modifiers.hacking_chance > 1 ||
@@ -269,7 +276,7 @@ export function getAugmentationSelection(ns: NS, type: string): string[] {
 		);
 	}
 
-	function selectCombat(a: string) {
+	function combatFilter(a: string) {
 		const modifiers = ns.singularity.getAugmentationStats(a);
 		return (
 			modifiers.strength > 1 ||
@@ -283,22 +290,23 @@ export function getAugmentationSelection(ns: NS, type: string): string[] {
 		);
 	}
 
-	function selectReputation(a: string) {
+	function reputationFilter(a: string) {
 		return ns.singularity.getAugmentationStats(a).faction_rep > 1;
 	}
 
-	const specialAug = ["The Red Pill", "Neuroreceptor Management Implant"];
+	const specialAugmentations = ["The Red Pill", "Neuroreceptor Management Implant"];
 
-	if (type == "Hacking") {
-		return aug.filter((a) => selectHacking(a));
-	} else if (type == "Combat") {
-		return aug.filter((a) => selectCombat(a));
-	} else if (type == "Rep") {
-		return aug.filter((a) => selectReputation(a));
-	} else if (type == "Special") {
-		return specialAug;
-	} else {
-		return aug;
+	switch (type) {
+		case "Hacking":
+			return augmentations.filter((a) => hackingFilter(a));
+		case "Combat":
+			return augmentations.filter((a) => combatFilter(a));
+		case "Reputation":
+			return augmentations.filter((a) => reputationFilter(a));
+		case "Special":
+			return specialAugmentations;
+		default:
+			return augmentations;
 	}
 }
 
@@ -309,110 +317,113 @@ export function getAugmentationSelection(ns: NS, type: string): string[] {
  * @param {string[]} aug - The list of augmentations to filter.
  * @returns {string[]} The list of unique augmentations that are only available from a single faction.
  */
-export function getUniqueAugmentations(ns: NS, aug: string[]): string[] {
+function getUniqueAugmentations(ns: NS, aug: string[]): string[] {
 	return aug.filter((a) => ns.singularity.getAugmentationFactions(a).length == 1);
 }
 
-/**
- * Buys augmentations from a specified faction.
- *
- * @param {NS} ns - The Bitburner API object.
- * @param {string} faction - The faction from which to buy augmentations.
- * @param {boolean} continueBuying - Whether to continue buying augmentations if a purchase fails.
- */
-export function buyAugmentations(
+function getRemainingAugmentationsFromFaction(
 	ns: NS,
-	faction: string = "",
-	continueBuying: boolean = false,
+	faction: string,
+	includePurchased: boolean = true,
 ) {
-	let factionName = faction;
-	if (factionName == "") {
-		factionName = getNextFaction(ns);
-	}
-
-	function getAugToBuy(): string[] {
-		const augSelection = getRemainingAugmentations(ns);
-		return ns.singularity
-			.getAugmentationsFromFaction(factionName as FactionName)
-			.filter((a) => augSelection.includes(a));
-	}
-
-	const aug = getAugToBuy().sort(function (a, b) {
-		return (
-			ns.singularity.getAugmentationPrice(b) -
-			ns.singularity.getAugmentationPrice(a)
+	return ns.singularity
+		.getAugmentationsFromFaction(faction as FactionName)
+		.filter(
+			(a) =>
+				a != "NeuroFlux Governor" &&
+				!ns.singularity.getOwnedAugmentations(includePurchased).includes(a),
 		);
-	});
+}
 
-	const inGang = ns.gang.inGang();
+function getAvailableAugmentations(ns: NS) {
+	const playerFactions = ns.getPlayer().factions;
 
-	while (aug.length > 0) {
-		const nextAug = aug[0];
-		if (nextAug == "NeuroFlux Governor") {
-			aug.shift();
-			continue;
-		}
-		const preReq = ns.singularity
-			.getAugmentationPrereq(nextAug)
-			.sort(function (a, b) {
-				return (
-					ns.singularity.getAugmentationPrice(b) -
-					ns.singularity.getAugmentationPrice(a)
-				);
-			});
-		const owned = ns.singularity.getOwnedAugmentations(true);
-		for (let a of preReq.filter((a) => !owned.includes(a))) {
-			if (
-				!ns.singularity.purchaseAugmentation(factionName as FactionName, a) &&
-				inGang
-			) {
-				ns.singularity.purchaseAugmentation(
-					ns.gang.getGangInformation().faction,
-					a,
-				);
+	const augmentations: string[] = [];
+	for (let f of playerFactions) {
+		augmentations.push(
+			...getRemainingAugmentationsFromFaction(ns, f).filter(
+				(a) =>
+					!augmentations.includes(a) && // augmentation is not already in the list
+					ns.singularity
+						.getAugmentationPrereq(a)
+						.every((p) =>
+							ns.singularity.getOwnedAugmentations(true).includes(p),
+						) && // augmentation prerequisites are owned
+					ns.singularity.getAugmentationRepReq(a) <=
+						ns.singularity.getFactionRep(f as FactionName) && // player has enough reputation with the faction
+					ns.singularity.getAugmentationPrice(a) <= ns.getPlayer().money, // player has enough money
+			),
+		);
+	}
+	return augmentations.sort(
+		(a, b) =>
+			ns.singularity.getAugmentationPrice(b) -
+			ns.singularity.getAugmentationPrice(a),
+	);
+}
+
+export function purchaseAvailableAugmentations(ns: NS, minAmount: number) {
+	const availableAugmentations = getAvailableAugmentations(ns);
+	const purchasedAugmentations = ns.singularity
+		.getOwnedAugmentations(true)
+		.filter((a) => !ns.singularity.getOwnedAugmentations(false).includes(a));
+	const playerFactions = ns
+		.getPlayer()
+		.factions.sort(
+			(a, b) => ns.singularity.getFactionRep(b) - ns.singularity.getFactionRep(a),
+		);
+
+	if (availableAugmentations.length >= minAmount - purchasedAugmentations.length) {
+		for (let a of availableAugmentations) {
+			for (let f of playerFactions) {
+				if (ns.singularity.getAugmentationFactions(a).includes(f)) {
+					ns.singularity.purchaseAugmentation(f as FactionName, a);
+					break;
+				}
 			}
 		}
-		let purchased = ns.singularity.purchaseAugmentation(
-			factionName as FactionName,
-			nextAug,
-		);
-		if (!purchased && inGang) {
-			purchased = ns.singularity.purchaseAugmentation(
-				ns.gang.getGangInformation().faction,
-				nextAug,
-			);
-		} // purchasing augment failed -> try again in gang faction
-		if (purchased || continueBuying) {
-			aug.shift();
-			continue;
-		} // move to next aug if previous purchase succeeded or if continue buying == true
-		else {
-			return;
-		} // purchasing failed so stop execution
+	} else {
+		return;
 	}
 }
 
-/**
- * Purchase last affordable augmentations from the highest faction and NeuroFlux Governors until money runs out.
- *
- * @param {NS} ns - The Bitburner API object.
- */
-export function buyLast(ns: NS) {
-	if (ns.gang.inGang()) {
-		const gangFaction = ns.gang.getGangInformation().faction;
-		buyAugmentations(ns, gangFaction, true);
+function buyNeuroflux(ns: NS) {
+	const NeurofluxFaction = ns
+		.getPlayer()
+		.factions.filter((f) =>
+			ns.singularity.getAugmentationFactions("NeuroFlux Governor").includes(f),
+		)
+		.sort(
+			(a, b) => ns.singularity.getFactionRep(b) - ns.singularity.getFactionRep(a),
+		)[0];
+	if (NeurofluxFaction) {
+		while (
+			ns.singularity.purchaseAugmentation(
+				NeurofluxFaction as FactionName,
+				"NeuroFlux Governor",
+			)
+		) {
+			continue;
+		}
+	} else {
+		return;
 	}
+}
 
-	const highestFaction = getHighestFaction(ns);
-	while (
-		ns.getPlayer().money >
-			ns.singularity.getAugmentationPrice("NeuroFlux Governor") &&
-		ns.singularity.getFactionRep(highestFaction as FactionName) >
-			ns.singularity.getAugmentationRepReq("NeuroFlux Governor")
-	) {
-		ns.singularity.purchaseAugmentation(
-			highestFaction as FactionName,
-			"NeuroFlux Governor",
+export async function installAugmentations(ns: NS, minAmount: number) {
+	const purchasedAugmentations = ns.singularity
+		.getOwnedAugmentations(true)
+		.filter((a) => !ns.singularity.getOwnedAugmentations(false).includes(a));
+
+	if (purchasedAugmentations.length >= minAmount) {
+		ns.print(
+			getTimestamp() +
+				" Installing " +
+				purchasedAugmentations +
+				" augmentations in 5 seconds",
 		);
+		buyNeuroflux(ns);
+		await ns.sleep(5000);
+		ns.singularity.installAugmentations("../start.js");
 	}
 }

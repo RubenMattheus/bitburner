@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { scanServers } from "../servers/server-scan";
+import { scan } from "../servers/scan";
 
 const scriptBase = "/scripts/hacking/actions/";
 const shareServers = ["server_21", "server_22", "server_23", "server_24", "server_25"];
@@ -12,7 +12,7 @@ const shareServers = ["server_21", "server_22", "server_23", "server_24", "serve
  * @param {NS} ns - The Bitburner API object.
  */
 export function deploy(ns: NS) {
-	const servers = scanServers(ns)["hasRootAccess"];
+	const servers = scan(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
 
 	const targets = servers.filter(
@@ -70,9 +70,9 @@ export function deploy(ns: NS) {
 	for (let server of servers.filter((a) => a != "home")) {
 		let scriptPath = "";
 		if (shareServers.includes(server)) {
-			let scriptPath = scriptBase + "share.js";
+			scriptPath = scriptBase + "share.js";
 		} else {
-			let scriptPath = scriptBase + "xp.js";
+			scriptPath = scriptBase + "xp.js";
 		}
 
 		const scriptRam = ns.getScriptRam(scriptPath);
@@ -104,7 +104,7 @@ function execute(ns: NS, action: string, target: string, totalNeededThreads: num
 	const scriptRam = ns.getScriptRam(scriptPath);
 	let neededThreads = totalNeededThreads;
 
-	const servers = scanServers(ns)["hasRootAccess"];
+	const servers = scan(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
 
 	for (let host of servers) {

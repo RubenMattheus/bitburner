@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { get_timestamp } from "../logging/timestamp";
+import { getTimestamp } from "../logging/timestamp";
 
 export async function main(ns: NS): Promise<void> {
 	ns.disableLog("ALL");
@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
 		if (karma != ns.heart.break().toFixed(2)) {
 			karma = ns.heart.break().toFixed(2);
 			ns.print(
-				get_timestamp() +
+				getTimestamp() +
 					" Current karma: " +
 					karma +
 					" (" +

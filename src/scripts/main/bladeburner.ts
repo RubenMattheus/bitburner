@@ -11,19 +11,25 @@ import { manageBladeburner } from "../mechanics/bladeburner";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setupLog(ns, true, 3, 5);
+	setupLog(ns, true, 3, 4);
+	ns.ui.setTailTitle("Bladeburner");
 
-	let nextBlackOp = ns.bladeburner.getNextBlackOp();
-	ns.print(getTimestamp() + " Next Black Operation is " + nextBlackOp?.name);
+	let nextBlackOp;
+	if (ns.bladeburner.inBladeburner()) {
+		nextBlackOp = ns.bladeburner.getNextBlackOp();
+		ns.print(getTimestamp() + " Next Black Operation is " + nextBlackOp?.name);
+	}
+
+	await ns.sleep(5000);
 
 	while (true) {
-		if (ns.bladeburner.getNextBlackOp()?.name != nextBlackOp?.name) {
+		if (nextBlackOp && ns.bladeburner.getNextBlackOp()?.name != nextBlackOp?.name) {
 			ns.print(
 				getTimestamp() + " Completed Black Operation " + nextBlackOp?.name,
 			);
 			nextBlackOp = ns.bladeburner.getNextBlackOp();
 		}
 		manageBladeburner(ns);
-		await ns.sleep(10200);
+		await ns.sleep(10500);
 	}
 }

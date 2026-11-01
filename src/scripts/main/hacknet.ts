@@ -11,9 +11,12 @@ import { manageHacknetNodes } from "../mechanics/hacknet";
  */
 export async function main(ns: NS): Promise<void> {
 	setupLog(ns, true, 3, 7);
+	ns.ui.setTailTitle("Hacknet");
+
+	await ns.sleep(5000);
 
 	while (true) {
 		manageHacknetNodes(ns);
-		await ns.sleep(10200);
+		await ns.sleep(10500);
 	}
 }

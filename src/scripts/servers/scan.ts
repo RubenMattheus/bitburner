@@ -24,7 +24,7 @@ export async function main(ns: NS): Promise<void> {
  * @param {NS} ns - The Bitburner API object.
  * @returns {{ hasRootAccess: string[], noRootAccess: string[] }} The dictionary containing all servers
  */
-export function scanServers(ns: NS): {
+export function scan(ns: NS): {
 	hasRootAccess: string[];
 	noRootAccess: string[];
 } {
@@ -79,7 +79,7 @@ export function scanServers(ns: NS): {
  * @param {string} target -The target server to find the path to.
  */
 export function findServer(ns: NS, target: string): string[] {
-	const servers = scanServers(ns);
+	const servers = scan(ns);
 
 	if (target == "home") {
 		return [];

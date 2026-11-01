@@ -12,8 +12,6 @@ export function setupLog(ns: NS, minimal: boolean = true, x: number, y: number) 
 		ns.disableLog("ALL");
 	}
 
-	ns.print(getTimestamp() + " Launched script");
-
 	const windowSize = ns.ui.windowSize();
 	const tailSize = [windowSize[0] / 4, windowSize[1] / 10];
 	const tailCoords = [tailSize[0] * x, tailSize[1] * y];
@@ -21,4 +19,9 @@ export function setupLog(ns: NS, minimal: boolean = true, x: number, y: number) 
 	ns.ui.openTail();
 	ns.ui.resizeTail(tailSize[0], tailSize[1]);
 	ns.ui.moveTail(tailCoords[0], tailCoords[1]);
+
+	ns.ui.setTailFontSize(12);
+
+	ns.clearLog();
+	ns.print(getTimestamp() + " Launched script");
 }

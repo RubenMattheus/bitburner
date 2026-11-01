@@ -11,9 +11,12 @@ import { manageGang } from "../mechanics/gang";
  */
 export async function main(ns: NS): Promise<void> {
 	setupLog(ns, true, 3, 6);
+	ns.ui.setTailTitle("Gang");
+
+	await ns.sleep(5000);
 
 	while (true) {
 		manageGang(ns, "Combat");
-		await ns.sleep(10200);
+		await ns.sleep(10500);
 	}
 }
