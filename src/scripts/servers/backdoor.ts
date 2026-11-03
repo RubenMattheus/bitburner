@@ -2,6 +2,18 @@ import { NS, FactionName, ProgramName } from "@ns";
 import { scan, findServer } from "./scan";
 import { getTimestamp } from "../logging/timestamp";
 
+export async function main(ns: NS): Promise<void> {
+	if (await backdoor(ns, "w0r1d_d43m0n", false)) {
+		ns.alert("Connected to w0r1d_d43m0n");
+	} else {
+		ns.alert(
+			"w0r1d_d43m0n is not yet visible or hacking level is too low (required hacking level: " +
+				ns.getServerRequiredHackingLevel("w0r1d_d43m0n") +
+				")",
+		);
+	}
+}
+
 export function nuke(ns: NS) {
 	const timestamp = getTimestamp();
 
@@ -20,7 +32,10 @@ export function nuke(ns: NS) {
 	}
 }
 
-export async function backdoor(ns: NS, finishBitnode: boolean = false): Promise<void> {
+export async function backdoorServers(
+	ns: NS,
+	finishBitnode: boolean = false,
+): Promise<void> {
 	const servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "fulcrumassets"];
 
 	if (finishBitnode) {
@@ -28,21 +43,36 @@ export async function backdoor(ns: NS, finishBitnode: boolean = false): Promise<
 	}
 
 	for (let s of servers) {
-		if (findServer(ns, s).length == 0) {
-			continue;
+		await backdoor(ns, s);
+	}
+}
+
+async function backdoor(
+	ns: NS,
+	server: string,
+	install: boolean = true,
+): Promise<boolean> {
+	if (findServer(ns, server).length == 0) {
+		return false;
+	}
+
+	if (
+		ns.hasRootAccess(server) &&
+		ns.getServerRequiredHackingLevel(server) < ns.getPlayer().skills.hacking &&
+		!ns.getServer(server).backdoorInstalled
+	) {
+		const serverPath = findServer(ns, server);
+		for (let p of serverPath) {
+			ns.singularity.connect(p);
 		}
-		if (
-			ns.hasRootAccess(s) &&
-			ns.getServerRequiredHackingLevel(s) < ns.getPlayer().skills.hacking &&
-			!ns.getServer(s).backdoorInstalled
-		) {
-			const serverPath = findServer(ns, s);
-			for (let p of serverPath) {
-				ns.singularity.connect(p);
-			}
+
+		if (install) {
 			await ns.singularity.installBackdoor();
 			ns.singularity.connect("home");
 		}
+		return true;
+	} else {
+		return false;
 	}
 }
 

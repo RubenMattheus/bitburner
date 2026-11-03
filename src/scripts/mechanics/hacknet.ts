@@ -2,20 +2,29 @@ import { NS } from "@ns";
 import { getTimestamp } from "../logging/timestamp";
 
 export async function main(ns: NS): Promise<void> {
+	let alertString = "HACKNET OVERVIEW";
+
 	const numNodes = ns.hacknet.numNodes();
 	for (let i = 0; i < numNodes; i++) {
-		const nodeStats = ns.hacknet.getNodeStats(i);
-		ns.tprint("/--- " + nodeStats.name + " ---/");
-		ns.tprint(
-			"level: " +
-				nodeStats.level +
-				" // RAM " +
-				nodeStats.ram +
-				" // CORES " +
-				nodeStats.cores,
+		const node = ns.hacknet.getNodeStats(i);
+		alertString = alertString.concat(
+			"\n" +
+				node.name +
+				" level: " +
+				node.level +
+				", RAM: " +
+				node.ram +
+				", cores: " +
+				node.cores,
 		);
 	}
+
+	ns.alert(alertString);
 }
+
+// ---------------------- //
+// HACKNET NODE FUNCTIONS //
+// ---------------------- //
 
 export function manageHacknetNodes(ns: NS) {
 	const numNodes = ns.hacknet.numNodes();
@@ -59,3 +68,9 @@ function upgradeCores(ns: NS, index: number) {
 		ns.hacknet.upgradeCore(index);
 	}
 }
+
+// ----------------------- //
+// HACNET SERVER FUNCTIONS //
+// ----------------------- //
+
+export function manageHacknetServers(ns: NS) {}

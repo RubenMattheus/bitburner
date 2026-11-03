@@ -1,12 +1,10 @@
 import {
 	NS,
-	CityName,
 	BladeburnerActionType,
 	BladeburnerActionName,
 	BladeburnerSkillName,
 } from "@ns";
-
-const CITIES = ["Sector-12", "Chongqing", "New Tokyo", "Ishima", "Aevum", "Volhaven"];
+import { getTimestamp } from "../logging/timestamp";
 
 /**
  * Prints Bladeburner progress and city information to the terminal.
@@ -16,46 +14,61 @@ const CITIES = ["Sector-12", "Chongqing", "New Tokyo", "Ishima", "Aevum", "Volha
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	const todo = ns.bladeburner.getBlackOpNames();
-	const totalCount = todo.length;
-
-	const rank = ns.bladeburner.getRank();
-	const finalRank = ns.bladeburner.getBlackOpRank(todo[todo.length - 1]);
+	let alertString = "BLADEBURNER OVERVIEW";
+	const blackOps = ns.bladeburner.getBlackOpNames();
+	const finalRank = ns.bladeburner.getBlackOpRank(blackOps[blackOps.length - 1]);
 
 	const completed = [];
 	const next = ns.bladeburner.getNextBlackOp();
-	while (todo[0] != next?.name && todo.length > 0) {
-		completed.push(todo.shift());
+	while (blackOps[0] != next?.name && blackOps.length > 0) {
+		completed.push(blackOps.shift());
 	}
 
-	ns.tprint("\n--- DONE ---\n" + completed);
-	ns.tprint("\n--- TODO ---\n" + todo);
-	ns.tprint("\n--- OVERVIEW ---");
-	ns.tprint(
-		"Black Operations: " +
+	alertString = alertString.concat(
+		"\nBlack Operations: " +
 			completed.length +
 			"/" +
-			totalCount +
+			(blackOps.length + completed.length) +
 			"\nRank: " +
-			rank.toFixed() +
+			ns.bladeburner.getRank().toFixed() +
 			"/" +
 			finalRank +
 			" [" +
-			((rank / finalRank) * 100).toFixed(2) +
+			((ns.bladeburner.getRank() / finalRank) * 100).toFixed(2) +
 			"%]",
 	);
-	for (let c of CITIES) {
-		ns.tprint(
+	alertString = alertString.concat("\n--- DONE ---\n" + completed);
+	alertString = alertString.concat("\n--- TODO ---\n" + blackOps);
+
+	let totalPopulation = 0;
+	let totalChaos = 0;
+	for (let c of Object.values(ns.enums.CityName)) {
+		const cityPopulation = ns.bladeburner.getCityEstimatedPopulation(c);
+		const cityChaos = ns.bladeburner.getCityChaos(c);
+		alertString = alertString.concat(
 			"\n--- " +
 				c +
 				"---\nPOPULATION: " +
-				(
-					ns.bladeburner.getCityEstimatedPopulation(c as CityName) / 1e9
-				).toFixed(3) +
+				(cityPopulation / 1e9).toFixed(3) +
 				"b\nCHAOS: " +
-				ns.bladeburner.getCityChaos(c as CityName).toFixed(3),
+				cityChaos.toFixed(3),
 		);
+		totalPopulation += cityPopulation;
+		totalChaos += cityChaos;
 	}
+
+	alertString = alertString.concat(
+		"\n--- COMBINED --- \nPOPULATION: " +
+			(totalPopulation / 1e9).toFixed(1) +
+			"b/" +
+			Object.values(ns.enums.CityName).length * 1.25 +
+			"b\nCHAOS: " +
+			totalChaos.toFixed(1) +
+			"/" +
+			Object.values(ns.enums.CityName).length * 50,
+	);
+
+	ns.alert(alertString);
 }
 
 /**
@@ -72,49 +85,59 @@ export function manageBladeburner(ns: NS) {
 	upgradeSkills(ns);
 }
 
+function setAction(ns: NS, type: BladeburnerActionType, name: BladeburnerActionName) {
+	if (ns.bladeburner.getCurrentAction()?.name != name) {
+		return ns.bladeburner.startAction(type, name);
+	} else {
+		return true;
+	}
+}
+
 /**
  * Sets current action to the most appropriate action based on current Bladeburner stats and city chaos.
  *
  * @param {NS} ns - The Bitburner API object.
  */
-function pickAction(ns: NS) {
+function pickAction(ns: NS): boolean {
 	const [currentStamina, maxStamina] = ns.bladeburner.getStamina();
 
-	if (ns.bladeburner.getCityChaos(ns.bladeburner.getCity()) > 50) {
-		lowerChaos(ns);
-		return;
+	if (ns.bladeburner.getCityChaos(ns.bladeburner.getCity()) > 50 && lowerChaos(ns)) {
+		return true;
+	} else if (lowerOtherCityChaos(ns)) {
+		return true;
 	}
 
-	const dataAccuracyActions = [
-		["Tracking", "Contracts"],
-		["Investigation", "Operations"],
-		["Undercover Operation", "Operations"],
+	const dataAccuracyActions: [BladeburnerActionType, BladeburnerActionName][] = [
+		["Contracts", "Tracking"],
+		["Operations", "Investigation"],
+		["Operations", "Undercover Operation"],
 	];
 
-	const retirementActions = [
-		["Bounty Hunter", "Contracts"],
-		["Retirement", "Contracts"],
-		["Assassination", "Operations"],
+	const retirementActions: [BladeburnerActionType, BladeburnerActionName][] = [
+		["Contracts", "Bounty Hunter"],
+		["Contracts", "Retirement"],
+		["Operations", "Assassination"],
 	];
 
-	if (currentStamina < maxStamina / 2) {
-		return ns.bladeburner.startAction("General", "Training");
-	} else if (startBlackOp(ns) == true) {
-		return true;
-	} else if (
-		(ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1.25e9 ||
-			accuracyNeeded(ns)) &&
-		performAction(ns, dataAccuracyActions) == true
-	) {
-		return true;
-	} else if (
-		ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) > 1.25e9 &&
-		performAction(ns, retirementActions) == true
-	) {
-		return true;
-	} else {
-		return generateWork(ns);
+	if (currentStamina > maxStamina / 2) {
+		if (startBlackOp(ns) == true) {
+			return true;
+		} else if (
+			ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) >
+				1.25e9 &&
+			!accuracyNeeded(ns) &&
+			performAction(ns, retirementActions) == true
+		) {
+			return true;
+		} else if (performAction(ns, dataAccuracyActions) == true) {
+			return true;
+		} else if (generateWork(ns, dataAccuracyActions.concat(retirementActions))) {
+			return true;
+		} else if (increaseOtherCityAccuracy(ns, dataAccuracyActions)) {
+			return true;
+		}
 	}
+	return setAction(ns, "General", "Training");
 }
 
 function accuracyNeeded(ns: NS): boolean {
@@ -140,20 +163,15 @@ function accuracyNeeded(ns: NS): boolean {
  * @param {string[][]} actions - The subset of actions to pick from.
  * @returns {boolean} Whether or not a new action was started or was already in progress.
  */
-function performAction(ns: NS, actions: string[][]): boolean {
-	const currentAction = ns.bladeburner.getCurrentAction()?.name;
-
+function performAction(
+	ns: NS,
+	actions: [BladeburnerActionType, BladeburnerActionName][],
+): boolean {
 	const action = actions
 		.filter(
 			(a) =>
-				ns.bladeburner.getActionCountRemaining(
-					a[1] as BladeburnerActionType,
-					a[0] as BladeburnerActionName,
-				) > 50 &&
-				ns.bladeburner.getActionEstimatedSuccessChance(
-					a[1] as BladeburnerActionType,
-					a[0] as BladeburnerActionName,
-				)[0] > 0.5,
+				ns.bladeburner.getActionCountRemaining(a[0], a[1]) > 50 &&
+				ns.bladeburner.getActionEstimatedSuccessChance(a[0], a[1])[0] > 0.5,
 		)
 		.reverse()[0];
 
@@ -161,14 +179,7 @@ function performAction(ns: NS, actions: string[][]): boolean {
 		return false;
 	}
 
-	if (currentAction != action[0]) {
-		return ns.bladeburner.startAction(
-			action[1] as BladeburnerActionType,
-			action[0] as BladeburnerActionName,
-		);
-	} else {
-		return true;
-	}
+	return setAction(ns, action[0], action[1]);
 }
 
 /**
@@ -177,7 +188,6 @@ function performAction(ns: NS, actions: string[][]): boolean {
  * @param {NS} ns - The Bitburner API object.
  */
 function startBlackOp(ns: NS) {
-	const currentAction = ns.bladeburner.getCurrentAction()?.name;
 	const blackOp = ns.bladeburner.getNextBlackOp();
 	if (blackOp == null) {
 		return;
@@ -198,14 +208,11 @@ function startBlackOp(ns: NS) {
 	);
 	const succes = (chance[0] + chance[1]) / 2;
 
-	if (currentAction == blackOp.name) {
-		return true;
-	}
 	if (playerRank >= targetRank && succes >= 0.66) {
-		ns.bladeburner.startAction("Black Operations", blackOp.name);
-		return true;
+		return setAction(ns, "Black Operations", blackOp.name);
+	} else {
+		return false;
 	}
-	return false;
 }
 
 /**
@@ -213,38 +220,25 @@ function startBlackOp(ns: NS) {
  *
  * @param {NS} ns - The Bitburner API object.
  */
-function lowerChaos(ns: NS) {
-	const currentAction = ns.bladeburner.getCurrentAction()?.name;
-
+function lowerChaos(ns: NS): boolean {
 	const currentPopulation = ns.bladeburner.getCityEstimatedPopulation(
 		ns.bladeburner.getCity(),
 	);
 
-	const chance = ns.bladeburner.getActionEstimatedSuccessChance(
-		"Operations",
-		"Stealth Retirement Operation",
-	);
-	const succes = (chance[0] + chance[1]) / 2;
-	if (succes >= 0.66 && currentPopulation >= 1e9) {
-		if (currentAction != "Stealth Retirement Operation") {
-			ns.bladeburner.startAction("Operations", "Stealth Retirement Operation");
-		}
-	} else if (currentAction != "Diplomacy") {
-		ns.bladeburner.startAction("General", "Diplomacy");
-	}
-}
-
-/**
- * Sets current action to "Incite Violence" if it is not already the current action.
- *
- * @param {NS} ns - The Bitburner API object.
- * @returns {boolean} True if "Incite Violence" was succesfully started or already in progress, and false if otherwise
- */
-function generateWork(ns: NS): boolean {
-	if (ns.bladeburner.getCurrentAction()?.name != "Incite Violence") {
-		return ns.bladeburner.startAction("General", "Incite Violence");
+	if (
+		ns.bladeburner.getActionCountRemaining(
+			"Operations",
+			"Stealth Retirement Operation",
+		) > 50 &&
+		ns.bladeburner.getActionEstimatedSuccessChance(
+			"Operations",
+			"Stealth Retirement Operation",
+		)[0] > 0.5 &&
+		currentPopulation >= 1e9
+	) {
+		return setAction(ns, "Operations", "Stealth Retirement Operation");
 	} else {
-		return true;
+		return setAction(ns, "General", "Diplomacy");
 	}
 }
 
@@ -254,8 +248,9 @@ function generateWork(ns: NS): boolean {
  * @param {NS} ns - The Bitburner API object.
  */
 function upgradeSkills(ns: NS) {
-	// const tier0 = ["Overclock"];
-	const tier1 = [
+	// const tier0: BladeburnerSkillName[] = ["Overclock"];
+
+	const tier1: BladeburnerSkillName[] = [
 		"Blade's Intuition",
 		"Cloak",
 		"Short-Circuit",
@@ -263,54 +258,54 @@ function upgradeSkills(ns: NS) {
 		"Reaper",
 		"Evasive System",
 		"Hyperdrive",
-	].sort((a, b) => {
-		return (
-			ns.bladeburner.getSkillLevel(a as BladeburnerSkillName) -
-			ns.bladeburner.getSkillLevel(b as BladeburnerSkillName)
-		);
+	];
+	tier1.sort((a, b) => {
+		return ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b);
 	});
-	const tier2 = ["Datamancer", "Cyber's Edge"].sort((a, b) => {
-		return (
-			ns.bladeburner.getSkillLevel(a as BladeburnerSkillName) -
-			ns.bladeburner.getSkillLevel(b as BladeburnerSkillName)
-		);
+
+	const tier2: BladeburnerSkillName[] = ["Datamancer"];
+	tier2.sort((a, b) => {
+		return ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b);
 	});
-	const tier3 = ["Tracer"];
-	// const tier4 = ["Hands of Midas"];
+
+	const tier3: BladeburnerSkillName[] = ["Tracer"];
+
+	// const tier4: BladeburnerSkillName[] = ["Cyber's Edge", "Hands of Midas"];
 
 	const overclockLevel = ns.bladeburner.getSkillLevel("Overclock");
 	// Tier 1: Level has to be lower than one third of skill "Overclock"
 	const tier1Filtered = tier1.filter(
-		(s) =>
-			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) <
-			overclockLevel / 3,
+		(s) => ns.bladeburner.getSkillLevel(s) < overclockLevel / 3,
 	);
 	// Tier 2: Level has to be lower than one fifth of skill "Overclock" and is capped at level 10
 	const tier2Filtered = tier2.filter(
 		(s) =>
-			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) <
-				overclockLevel / 5 &&
-			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < 10,
+			ns.bladeburner.getSkillLevel(s) < overclockLevel / 5 &&
+			ns.bladeburner.getSkillLevel(s) < 10,
 	);
 	// Tier 3 (earlygame): Level has to be lower than skill "Overclock" and is capped at level 5
 	const tier3Filtered = tier3.filter(
 		(s) =>
-			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < overclockLevel &&
-			ns.bladeburner.getSkillLevel(s as BladeburnerSkillName) < 5,
+			ns.bladeburner.getSkillLevel(s) < overclockLevel &&
+			ns.bladeburner.getSkillLevel(s) < 5,
 	);
 
 	const skillsToUpgrade = tier1Filtered.concat(tier2Filtered, tier3Filtered);
 
 	if (ns.bladeburner.getSkillLevel("Overclock") < 90) {
 		for (let s of skillsToUpgrade) {
-			if (!ns.bladeburner.upgradeSkill(s as BladeburnerSkillName)) {
+			if (!ns.bladeburner.upgradeSkill(s)) {
 				return;
 			}
 		}
-		ns.bladeburner.upgradeSkill("Overclock");
+		if (ns.bladeburner.upgradeSkill("Overclock")) {
+			ns.print(
+				getTimestamp() + " Upgraded Overclock to level " + (overclockLevel + 1),
+			);
+		}
 	} else {
 		for (let s of tier1) {
-			if (!ns.bladeburner.upgradeSkill(s as BladeburnerSkillName)) {
+			if (!ns.bladeburner.upgradeSkill(s)) {
 				return;
 			}
 		}
@@ -323,13 +318,65 @@ function upgradeSkills(ns: NS) {
  * @param {NS} ns - The Bitburner API object.
  */
 function pickCity(ns: NS) {
-	const cities = CITIES;
+	const cities = Object.values(ns.enums.CityName);
 
 	cities.sort((a, b) => {
 		return (
-			ns.bladeburner.getCityEstimatedPopulation(b as CityName) -
-			ns.bladeburner.getCityEstimatedPopulation(a as CityName)
+			ns.bladeburner.getCityEstimatedPopulation(b) -
+			ns.bladeburner.getCityEstimatedPopulation(a)
 		);
 	});
-	ns.bladeburner.switchCity(cities[0] as CityName);
+	ns.bladeburner.switchCity(cities[0]);
+}
+
+function lowerOtherCityChaos(ns: NS): boolean {
+	const cities = Object.values(ns.enums.CityName).filter(
+		(c) => ns.bladeburner.getCityChaos(c) > 100,
+	);
+	cities.sort(
+		(a, b) => ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a),
+	);
+
+	if (cities.length == 0) {
+		return false;
+	}
+
+	ns.bladeburner.switchCity(cities[0]);
+	return lowerChaos(ns);
+}
+
+function increaseOtherCityAccuracy(
+	ns: NS,
+	dataAccuracyActions: [BladeburnerActionType, BladeburnerActionName][],
+): boolean {
+	for (let c of Object.values(ns.enums.CityName)) {
+		ns.bladeburner.switchCity(c);
+		if (accuracyNeeded(ns)) {
+			if (performAction(ns, dataAccuracyActions)) {
+				return true;
+			} else {
+				return setAction(ns, "General", "Field Analysis");
+			}
+		}
+	}
+	return false;
+}
+
+function generateWork(
+	ns: NS,
+	actions: [BladeburnerActionType, BladeburnerActionName][],
+): boolean {
+	if (
+		Object.values(ns.enums.CityName).every(
+			(c) =>
+				ns.bladeburner.getCityChaos(c) < 40 &&
+				actions.some(
+					(a) => ns.bladeburner.getActionCountRemaining(a[0], a[1]) < 100,
+				),
+		)
+	) {
+		return setAction(ns, "General", "Incite Violence");
+	} else {
+		return false;
+	}
 }

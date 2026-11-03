@@ -10,7 +10,7 @@ const scriptBase = "/scripts/hacking/actions/";
  *
  * @param {NS} ns - The Bitburner API object.
  */
-export function deploy(ns: NS) {
+export function manageHacking(ns: NS) {
 	const servers = scan(ns)["hasRootAccess"];
 	servers.push(servers.splice(servers.indexOf("home"), 1)[0]); // put home at end of servers array
 
@@ -65,8 +65,12 @@ export function deploy(ns: NS) {
 		}
 	}
 
-	// use free RAM on servers
-	for (let server of servers.filter((a) => a != "home")) {
+	useFreeRam(ns);
+}
+
+function useFreeRam(ns: NS) {
+	const servers = scan(ns)["hasRootAccess"].filter((s) => s != "home");
+	for (let server of servers) {
 		let scriptPath = "";
 		const cloudServers = ns.cloud.getServerNames();
 

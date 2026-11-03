@@ -1,22 +1,22 @@
 import { NS } from "@ns";
 import { setupLog } from "./setup-log";
-import { manageHacknetNodes } from "../mechanics/hacknet";
+import { manageGrafting } from "../mechanics/grafting";
 
 /**
- * Manages everything hacknet-related
+ * Manages everything gang-related
  *
  * @param {NS} ns - The Bitburner API object.
  * @async
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setupLog(ns, true, 3, 7);
-	ns.ui.setTailTitle("Hacknet");
+	setupLog(ns, false, 2, 6);
+	ns.ui.setTailTitle("Grafting");
 
 	await ns.sleep(5000);
 
 	while (true) {
-		manageHacknetNodes(ns);
+		manageGrafting(ns);
 		await ns.sleep(10500);
 	}
 }

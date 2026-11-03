@@ -1,8 +1,8 @@
 import { NS } from "@ns";
 import { setupLog } from "./setup-log";
-import { setupTor, nuke, backdoor } from "../servers/backdoor";
+import { setupTor, nuke, backdoorServers } from "../servers/backdoor";
 import { manageServers } from "../servers/cloud-servers";
-import { deploy } from "../hacking/orchestrator";
+import { manageHacking } from "../hacking/orchestrator";
 
 /**
  * Perform all hacking-related tasks, including server management, faction work, and augmentation purchasing.
@@ -26,8 +26,8 @@ export async function main(ns: NS): Promise<void> {
 async function hacking(ns: NS) {
 	setupTor(ns);
 	nuke(ns);
-	await backdoor(ns, false);
-	deploy(ns);
+	await backdoorServers(ns, false);
 
+	manageHacking(ns);
 	manageServers(ns);
 }

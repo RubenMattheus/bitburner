@@ -21,6 +21,7 @@ export async function main(ns: NS): Promise<void> {
 		) {
 			startScript(ns, "./bladeburner.js");
 		}
+		startScript(ns, "./grafting.js");
 
 		pick_action(ns);
 		await ns.sleep(10500);
@@ -33,6 +34,10 @@ function startScript(ns: NS, script: string) {
 	}
 }
 
-function pick_action(ns: NS) {
-	factionWork(ns);
+function pick_action(ns: NS): boolean {
+	if (factionWork(ns)) {
+		return true;
+	} else {
+		return false;
+	}
 }

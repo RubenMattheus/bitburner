@@ -1,47 +1,4 @@
 import { NS, FactionName } from "@ns";
-import { getTimestamp } from "../logging/timestamp";
-
-const earlygameFactions = ["Tian Di Hui", "Netburners", "Shadows of Anarchy"];
-const cityFactions = [
-	"Sector-12",
-	"Chongqing",
-	"New Tokyo",
-	"Ishima",
-	"Aevum",
-	"Volhaven",
-];
-const hackingGroups = ["CyberSec", "NiteSec", "The Black Hand", "BitRunners"];
-const megacorporations = [
-	"ECorp",
-	"MegaCorp",
-	"KuaiGong International",
-	"Four Sigma",
-	"NWO",
-	"Blade Industries",
-	"OmniTek Incorporated",
-	"Bachman & Associates",
-	"Clarke Incorporated",
-	"Fulcrum Secret Technologies",
-];
-const criminalOrganizations = [
-	"Slum Snakes",
-	"Tetrads",
-	"Silhouette",
-	"Speakers for the Dead",
-	"The Dark Army",
-	"The Syndicate",
-];
-const lategameFactions = ["The Covenant", "Illuminati", "Daedalus"];
-const endgameFactions = ["Bladeburners", "Church of the Machine God"];
-
-const FACTIONS = earlygameFactions.concat(
-	cityFactions,
-	hackingGroups,
-	megacorporations,
-	criminalOrganizations,
-	lategameFactions,
-	endgameFactions,
-);
 
 /**
  * Prints all unowned augmentations, either grouped by unique factions that sell them or by type (Hacking, Combat, Rep, Special).
@@ -51,54 +8,28 @@ const FACTIONS = earlygameFactions.concat(
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	ns.tprint("--- UNIQUE ---");
+	let alertString = "FACTION OVERVIEW";
 
-	const unique = getUniqueAugmentations(ns, getAugmentations(ns, false));
-	unique.sort(function (a, b) {
-		return (
-			ns.singularity.getAugmentationRepReq(a) -
-			ns.singularity.getAugmentationRepReq(b)
-		);
-	});
-	const uniqueMap = unique.map((a) => ns.singularity.getAugmentationFactions(a)[0]);
-
-	for (let f of uniqueMap.filter((item, index) => uniqueMap.indexOf(item) == index)) {
-		ns.tprint("-| " + f + " |-");
-		ns.tprint(
-			String(
-				unique.filter((a) => ns.singularity.getAugmentationFactions(a)[0] == f),
-			),
+	const factions = Object.values(ns.enums.FactionName);
+	const incompleteFactions = factions.filter(
+		(f) => getRemainingAugmentationsFromFaction(ns, f).length > 0,
+	);
+	alertString = alertString.concat(
+		"\n" + incompleteFactions.length + " factions with remaining augmentations:",
+	);
+	for (let f of incompleteFactions) {
+		alertString = alertString.concat(
+			"\n" + f + " (" + getRemainingAugmentationsFromFaction(ns, f) + ")",
 		);
 	}
 
-	ns.tprint("--- GENERAL ---");
-
-	function printList(type: string) {
-		const list = getAugmentationSelection(ns, type).filter(
-			(a) => !unique.includes(a),
-		);
-		list.sort(function (a, b) {
-			return (
-				ns.singularity.getAugmentationRepReq(a) -
-				ns.singularity.getAugmentationRepReq(b)
-			);
-		});
-		if (list.length > 0) {
-			ns.tprint("-| " + type + " |-");
-			for (let a of list) {
-				ns.tprint(a + " : " + ns.singularity.getAugmentationFactions(a));
-			}
-		}
-	}
-
-	printList("Hacking");
-	printList("Combat");
-	printList("Rep");
+	ns.alert(alertString);
 }
 
 export async function manageFactions(ns: NS, minAugmentationAmount: number) {
 	joinCityFactions(ns);
 	acceptInvites(ns);
+	donateToFactions(ns);
 	purchaseAvailableAugmentations(ns, minAugmentationAmount);
 	await installAugmentations(ns, minAugmentationAmount);
 }
@@ -107,7 +38,7 @@ export async function manageFactions(ns: NS, minAugmentationAmount: number) {
 // FACTION FUNCTIONS //
 // ----------------- //
 
-export function getNextFaction(ns: NS) {
+export function getIncompleteFactions(ns: NS): FactionName[] {
 	const factions = ns.getPlayer().factions;
 	const toExclude = ["Bladeburners"];
 
@@ -118,28 +49,74 @@ export function getNextFaction(ns: NS) {
 	return factions
 		.filter(
 			(f) =>
-				!toExclude.includes(f) &&
-				getRemainingAugmentationsFromFaction(ns, f).length > 0 &&
+				!toExclude.includes(f) && // no special factions
+				!sufficientFactionRep(ns, f) && // need more rep
 				ns.singularity.getFactionFavor(f) +
 					ns.singularity.getFactionFavorGain(f) <
-					150,
+					150, // can't donate to get more rep
 		)
 		.sort(
 			(a, b) =>
 				getRemainingAugmentationsFromFaction(ns, b).length -
 				getRemainingAugmentationsFromFaction(ns, a).length,
-		)[0];
+		);
+}
+
+function sufficientFactionRep(ns: NS, faction: FactionName) {
+	const remainingAugmentations = getRemainingAugmentationsFromFaction(
+		ns,
+		faction,
+	).sort(
+		(a, b) =>
+			ns.singularity.getAugmentationRepReq(b) -
+			ns.singularity.getAugmentationRepReq(a),
+	);
+
+	if (remainingAugmentations.length == 0) {
+		return true;
+	}
+
+	return (
+		ns.singularity.getFactionRep(faction) >
+		ns.singularity.getAugmentationRepReq(remainingAugmentations[0])
+	);
 }
 
 export function factionWork(ns: NS): boolean {
-	if (ns.singularity.workForFaction(getNextFaction(ns), "security", false)) {
+	const nextFaction = getIncompleteFactions(ns)[0];
+
+	if (!nextFaction) {
+		return false;
+	}
+
+	if (ns.singularity.workForFaction(nextFaction, "security", false)) {
 		return true;
-	} else if (ns.singularity.workForFaction(getNextFaction(ns), "field", false)) {
+	} else if (ns.singularity.workForFaction(nextFaction, "field", false)) {
 		return true;
-	} else if (ns.singularity.workForFaction(getNextFaction(ns), "hacking", false)) {
+	} else if (ns.singularity.workForFaction(nextFaction, "hacking", false)) {
 		return true;
 	} else {
 		return false;
+	}
+}
+
+function donateToFactions(ns: NS) {
+	const factions = ns.getPlayer().factions;
+	const toExclude = ["Bladeburners"];
+
+	if (ns.gang.inGang()) {
+		toExclude.push(ns.gang.getGangInformation().faction);
+	}
+
+	const toDonate = factions.filter(
+		(f) =>
+			!toExclude.includes(f) &&
+			!sufficientFactionRep(ns, f) &&
+			ns.singularity.getFactionFavor(f) > 150,
+	);
+
+	for (let f of toDonate) {
+		ns.singularity.donateToFaction(f, ns.getPlayer().money * 0.1);
 	}
 }
 
@@ -222,116 +199,17 @@ function joinCityFactions(ns: NS) {
 // AUGMENTATION FUNCTIONS //
 // ---------------------- //
 
-/**
- * Returns the list of augmentations with the option to exclude already owned augmentations.
- *
- * @param {NS} ns - The Bitburner API object.
- * @param {boolean} includeOwned - Whether the player's augmentations should be included or excluded
- * @returns {string[]} The list of augmentations that are not yet owned by the player.
- */
-function getAugmentations(ns: NS, includeOwned: boolean = true): string[] {
-	const aug: string[] = [];
-
-	for (let f of FACTIONS) {
-		for (let a of ns.singularity.getAugmentationsFromFaction(f as FactionName)) {
-			if (
-				ns.singularity.getOwnedAugmentations(true).includes(a) &&
-				includeOwned == false
-			) {
-				continue;
-			}
-
-			aug.push(a);
-		}
-	}
-	return aug
-		.filter((item, index) => aug.indexOf(item) == index)
-		.sort(function (a, b) {
-			return (
-				ns.singularity.getAugmentationRepReq(a) -
-				ns.singularity.getAugmentationRepReq(b)
-			);
-		});
-}
-
-/**
- * Returns the list of augmentations of a specific type that are not yet owned by the player.
- *
- * @param {NS} ns - The Bitburner API object.
- * @param {string} type - The type of augmentations to select.
- * @returns {string[]} The list of augmentations of the specified type that are not yet owned by the player.
- */
-function getAugmentationSelection(ns: NS, type: string): string[] {
-	const augmentations = getAugmentations(ns, false);
-
-	function hackingFilter(a: string) {
-		const modifiers = ns.singularity.getAugmentationStats(a);
-		return (
-			modifiers.hacking_chance > 1 ||
-			modifiers.hacking_speed > 1 ||
-			modifiers.hacking_money > 1 ||
-			modifiers.hacking_grow > 1 ||
-			modifiers.hacking > 1 ||
-			modifiers.hacking_exp > 1
-		);
-	}
-
-	function combatFilter(a: string) {
-		const modifiers = ns.singularity.getAugmentationStats(a);
-		return (
-			modifiers.strength > 1 ||
-			modifiers.strength_exp > 1 ||
-			modifiers.defense > 1 ||
-			modifiers.defense_exp > 1 ||
-			modifiers.dexterity > 1 ||
-			modifiers.dexterity_exp > 1 ||
-			modifiers.agility > 1 ||
-			modifiers.agility_exp > 1
-		);
-	}
-
-	function reputationFilter(a: string) {
-		return ns.singularity.getAugmentationStats(a).faction_rep > 1;
-	}
-
-	const specialAugmentations = ["The Red Pill", "Neuroreceptor Management Implant"];
-
-	switch (type) {
-		case "Hacking":
-			return augmentations.filter((a) => hackingFilter(a));
-		case "Combat":
-			return augmentations.filter((a) => combatFilter(a));
-		case "Reputation":
-			return augmentations.filter((a) => reputationFilter(a));
-		case "Special":
-			return specialAugmentations;
-		default:
-			return augmentations;
-	}
-}
-
-/**
- * Returns the list of unique augmentations that are only available from a single faction.
- *
- * @param {NS} ns - The Bitburner API object.
- * @param {string[]} aug - The list of augmentations to filter.
- * @returns {string[]} The list of unique augmentations that are only available from a single faction.
- */
-function getUniqueAugmentations(ns: NS, aug: string[]): string[] {
-	return aug.filter((a) => ns.singularity.getAugmentationFactions(a).length == 1);
-}
-
 function getRemainingAugmentationsFromFaction(
 	ns: NS,
-	faction: string,
-	includePurchased: boolean = true,
+	faction: FactionName,
+	excludePurchased: boolean = true,
 ) {
 	return ns.singularity
-		.getAugmentationsFromFaction(faction as FactionName)
+		.getAugmentationsFromFaction(faction)
 		.filter(
 			(a) =>
 				a != "NeuroFlux Governor" &&
-				!ns.singularity.getOwnedAugmentations(includePurchased).includes(a),
+				!ns.singularity.getOwnedAugmentations(excludePurchased).includes(a),
 		);
 }
 
@@ -350,7 +228,7 @@ function getAvailableAugmentations(ns: NS) {
 							ns.singularity.getOwnedAugmentations(true).includes(p),
 						) && // augmentation prerequisites are owned
 					ns.singularity.getAugmentationRepReq(a) <=
-						ns.singularity.getFactionRep(f as FactionName) && // player has enough reputation with the faction
+						ns.singularity.getFactionRep(f) && // player has enough reputation with the faction
 					ns.singularity.getAugmentationPrice(a) <= ns.getPlayer().money, // player has enough money
 			),
 		);
@@ -377,7 +255,7 @@ export function purchaseAvailableAugmentations(ns: NS, minAmount: number) {
 		for (let a of availableAugmentations) {
 			for (let f of playerFactions) {
 				if (ns.singularity.getAugmentationFactions(a).includes(f)) {
-					ns.singularity.purchaseAugmentation(f as FactionName, a);
+					ns.singularity.purchaseAugmentation(f, a);
 					break;
 				}
 			}
@@ -398,10 +276,7 @@ function buyNeuroflux(ns: NS) {
 		)[0];
 	if (NeurofluxFaction) {
 		while (
-			ns.singularity.purchaseAugmentation(
-				NeurofluxFaction as FactionName,
-				"NeuroFlux Governor",
-			)
+			ns.singularity.purchaseAugmentation(NeurofluxFaction, "NeuroFlux Governor")
 		) {
 			continue;
 		}
@@ -416,14 +291,9 @@ export async function installAugmentations(ns: NS, minAmount: number) {
 		.filter((a) => !ns.singularity.getOwnedAugmentations(false).includes(a));
 
 	if (purchasedAugmentations.length >= minAmount) {
-		ns.print(
-			getTimestamp() +
-				" Installing " +
-				purchasedAugmentations +
-				" augmentations in 5 seconds",
-		);
+		ns.alert(" Installed " + purchasedAugmentations.length + " augmentations");
 		buyNeuroflux(ns);
 		await ns.sleep(5000);
-		ns.singularity.installAugmentations("../start.js");
+		ns.singularity.installAugmentations("/scripts/start.js");
 	}
 }

@@ -15,6 +15,10 @@ export function formatMoney(money: number): string {
 		money_string = "$" + String((money / 1e9).toFixed(3)) + "b";
 	} else if (money / 1e12 >= 1 && money / 1e15 < 1) {
 		money_string = "$" + String((money / 1e12).toFixed(3)) + "t";
+	} else if (money / 1e15 >= 1 && money / 1e18 < 1) {
+		money_string = "$" + String((money / 1e15).toFixed(3)) + "q";
+	} else if (money / 1e18 >= 1 && money / 1e21 < 1) {
+		money_string = "$" + String((money / 1e18).toFixed(3)) + "Q";
 	}
 
 	return money_string;

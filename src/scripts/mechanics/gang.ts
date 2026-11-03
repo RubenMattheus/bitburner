@@ -11,6 +11,7 @@ import { getTimestamp, getTargetTime } from "../logging/timestamp";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
+	let alertString = "GANG OVERVIEW";
 	if (ns.gang.inGang()) {
 		const gangs = Object.keys(ns.gang.getAllGangInformation());
 		gangs.splice(0, 1);
@@ -20,19 +21,21 @@ export async function main(ns: NS): Promise<void> {
 			avgWin += ns.gang.getChanceToWinClash(gang);
 		}
 
-		ns.tprint(
-			"Average chance to win clashes: " + (avgWin / gangs.length).toFixed(2),
+		alertString = alertString.concat(
+			"\nAverage chance to win clashes: " + (avgWin / gangs.length).toFixed(2),
 		);
 	} else {
 		const karma = ns.getPlayer().karma;
-		ns.tprint("Current karma: " + karma.toFixed(2));
+		alertString = alertString.concat("\nCurrent karma: " + karma.toFixed(2));
 		const karmaNeeded = -54000 - karma;
-		ns.tprint(
-			"Lowering karma finishes at " +
+		alertString = alertString.concat(
+			"\nLowering karma finishes at " +
 				getTargetTime(-karmaNeeded * 1000) +
 				" if committing homicide",
 		);
 	}
+
+	ns.alert(alertString);
 }
 
 /**
@@ -109,7 +112,7 @@ function setActions(ns: NS, type: string) {
 
 	// Check for ascensions
 	for (let member of members) {
-		checkAscension(ns, member, type == "Hacking" ? "Hacking" : "Combat");
+		checkAscension(ns, member, type);
 	}
 
 	// Sort members based on their stats
@@ -140,7 +143,7 @@ function setActions(ns: NS, type: string) {
 
 	// Purchase equipment for members
 	for (let m of members) {
-		purchaseEquipment(ns, m, type == "Hacking" ? "Hacking" : "Combat");
+		purchaseEquipment(ns, m, type);
 	}
 
 	const combinedWantedGain = getCombinedWantedGain(ns, type, g1);
@@ -317,10 +320,7 @@ function purchaseEquipment(ns: NS, member: string, type: string) {
 		const stats = ns.gang.getEquipmentStats(equipment);
 		if (type == "Hacking" && "hack" in stats) {
 			ns.gang.purchaseEquipment(member, equipment);
-		} else if (
-			type == "Combat" &&
-			("str" in stats || "def" in stats || "dex" in stats || "agi" in stats)
-		) {
+		} else {
 			ns.gang.purchaseEquipment(member, equipment);
 		}
 	}
