@@ -1,6 +1,5 @@
 import { GymType, NS, SleeveFactionTask, SleevePerson } from "@ns";
 import { getTimestamp } from "../logging/timestamp";
-import { formatMoney } from "../logging/money";
 import { getIncompleteFactions } from "./factions";
 
 export async function main(ns: NS): Promise<void> {
@@ -12,7 +11,7 @@ export async function main(ns: NS): Promise<void> {
 		const memoryString =
 			sleeve.memory < 100
 				? " (upgrade cost: " +
-					formatMoney(ns.sleeve.getMemoryUpgradeCost(i, 1)) +
+					ns.format.number(ns.sleeve.getMemoryUpgradeCost(i, 1)) +
 					")"
 				: "";
 		alertString = alertString.concat(
@@ -30,7 +29,10 @@ export async function main(ns: NS): Promise<void> {
 
 	if (ns.sleeve.getNumSleeves() < 8) {
 		alertString = alertString.concat(
-			"\nSleeve " + numSleeves + " - " + formatMoney(ns.sleeve.getSleeveCost()),
+			"\nSleeve " +
+				numSleeves +
+				" - " +
+				ns.format.number(ns.sleeve.getSleeveCost()),
 		);
 	}
 
@@ -87,7 +89,7 @@ function purchaseSleeve(ns: NS) {
 			ns.print(
 				getTimestamp() +
 					" Purchased sleeve " +
-					(ns.sleeve.getNumSleeves() - 1 + " for " + formatMoney(cost)),
+					(ns.sleeve.getNumSleeves() - 1 + " for " + ns.format.number(cost)),
 			);
 		}
 	}
@@ -103,7 +105,7 @@ function upgradeSleeves(ns: NS) {
 						" Upgraded memory of sleeve " +
 						i +
 						" for " +
-						formatMoney(cost),
+						ns.format.number(cost),
 				);
 			}
 		}
@@ -174,7 +176,7 @@ function purchaseSleeveAugmentations(ns: NS, index: number) {
 					" for sleeve " +
 					index +
 					" for " +
-					formatMoney(a.cost),
+					ns.format.number(a.cost),
 			);
 		}
 	}

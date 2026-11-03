@@ -82,24 +82,6 @@ function sufficientFactionRep(ns: NS, faction: FactionName) {
 	);
 }
 
-export function factionWork(ns: NS): boolean {
-	const nextFaction = getIncompleteFactions(ns)[0];
-
-	if (!nextFaction) {
-		return false;
-	}
-
-	if (ns.singularity.workForFaction(nextFaction, "security", false)) {
-		return true;
-	} else if (ns.singularity.workForFaction(nextFaction, "field", false)) {
-		return true;
-	} else if (ns.singularity.workForFaction(nextFaction, "hacking", false)) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
 function donateToFactions(ns: NS) {
 	const factions = ns.getPlayer().factions;
 	const toExclude = ["Bladeburners"];

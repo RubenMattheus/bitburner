@@ -1,6 +1,5 @@
 import { NS } from "@ns";
 import { getTimestamp } from "../logging/timestamp";
-import { formatMoney } from "../logging/money";
 
 const purchaseRam = 32;
 
@@ -78,7 +77,7 @@ function upgradeServers(ns: NS, timestamp: string) {
 						" to " +
 						upgradeTarget +
 						"GB RAM for " +
-						formatMoney(upgradeCost),
+						ns.format.number(upgradeCost),
 				);
 			} else {
 				return;

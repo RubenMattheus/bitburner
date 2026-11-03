@@ -10,7 +10,9 @@ import { manageFactions } from "../mechanics/factions";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setupLog(ns, true, 2, 8);
+	let x = Number(ns.args[0]),
+		y = Number(ns.args[1]);
+	setupLog(ns, true, x, y);
 	ns.ui.setTailTitle("Factions");
 
 	await ns.sleep(5000);

@@ -31,27 +31,11 @@ export async function main(ns: NS): Promise<void> {
 		alertString = alertString.concat(
 			"\nLowering karma finishes at " +
 				getTargetTime(-karmaNeeded * 1000) +
-				" if committing homicide",
+				" if committing 'homicide'",
 		);
 	}
 
 	ns.alert(alertString);
-}
-
-/**
- * Sets the current action to the most fitting crime to lower karma.
- *
- * @param {NS} ns - The Bitburner API object.
- */
-export function commitCrime(ns: NS) {
-	const work = ns.singularity.getCurrentWork();
-	const crime = work && work.type == "CRIME" ? work.crimeType : null;
-
-	if (ns.singularity.getCrimeChance("Homicide") > 0.5 && crime != "Homicide") {
-		ns.singularity.commitCrime("Homicide", false);
-	} else if (ns.singularity.getCrimeChance("Homicide") < 0.5 && crime != "Mug") {
-		ns.singularity.commitCrime("Mug", false);
-	}
 }
 
 /**

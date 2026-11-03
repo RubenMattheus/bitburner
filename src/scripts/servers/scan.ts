@@ -58,6 +58,13 @@ export function scan(ns: NS): {
 		}
 	}
 
+	serverDict["hasRootAccess"] = serverDict["hasRootAccess"].filter(
+		(s) => !s.includes("hacknet-server"),
+	);
+	serverDict["noRootAccess"] = serverDict["noRootAccess"].filter(
+		(s) => !s.includes("hacknet-server"),
+	);
+
 	serverDict["hasRootAccess"].sort(function (a, b) {
 		return (
 			ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b)

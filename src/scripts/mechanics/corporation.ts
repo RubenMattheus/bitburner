@@ -4,14 +4,15 @@ import { getTimestamp } from "../logging/timestamp";
 export function manageCorporation(ns: NS) {
 	if (!ns.corporation.hasCorporation()) {
 		if (ns.corporation.canCreateCorporation(true)) {
-			ns.corporation.createCorporation("Korporation", true);
-			ns.print(getTimestamp() + " Created corporation");
+			if (ns.corporation.createCorporation("Korporation", true)) {
+				ns.print(getTimestamp() + " Created corporation");
+			}
 		} else {
 			return;
 		}
+	} else {
+		manageIndustries(ns);
 	}
-
-	manageIndustries(ns);
 }
 
 function manageIndustries(ns: NS) {

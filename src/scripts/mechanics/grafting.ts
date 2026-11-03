@@ -1,5 +1,4 @@
 import { NS } from "@ns";
-import { formatMoney } from "../logging/money";
 
 export async function main(ns: NS): Promise<void> {
 	let alertString = "GRAFTING OVERVIEW";
@@ -15,7 +14,7 @@ export async function main(ns: NS): Promise<void> {
 	for (let a of unavailableAugmentations) {
 		const graftPrice = ns.grafting.getAugmentationGraftPrice(a);
 		alertString = alertString.concat(
-			"\n" + a + " (" + formatMoney(graftPrice) + ")",
+			"\n" + a + " (" + ns.format.number(graftPrice) + ")",
 		);
 	}
 
@@ -50,7 +49,11 @@ function implantOwned(ns: NS) {
 }
 
 function installImplant(ns: NS) {
-	if (ns.singularity.getCurrentWork()?.type != "GRAFTING") {
+	if (
+		ns.getPlayer().money >
+			ns.grafting.getAugmentationGraftPrice("violet Congruity Implant") &&
+		ns.singularity.getCurrentWork()?.type != "GRAFTING"
+	) {
 		if (ns.getPlayer().city != "New Tokyo") {
 			ns.singularity.travelToCity("New Tokyo");
 		}

@@ -1,7 +1,7 @@
 import { NS } from "@ns";
-import { commitCrime } from "../mechanics/gang";
 import { setupLog } from "./setup-log";
-import { manageHacknetNodes } from "../mechanics/hacknet";
+import { startScript } from "./main";
+import { manageSingularity } from "../mechanics/singularity";
 
 /**
  * Commits crime and raises home RAM
@@ -17,17 +17,16 @@ export async function main(ns: NS): Promise<void> {
 	await ns.sleep(5000);
 
 	while (ns.getServerMaxRam() < 256 || ns.getPlayer().karma > -54000) {
-		earlygame(ns);
+		startScript(ns, "./hacknet.js", 3, 7);
+		startScript(ns, "./singularity.js", 3, 6);
+
+		ns.singularity.upgradeHomeRam();
+		ns.bladeburner.joinBladeburnerDivision();
+
 		await ns.sleep(10500);
 	}
 
 	ns.run("./main.js");
 	ns.ui.closeTail();
 	ns.scriptKill("scripts/main/earlygame.js");
-}
-
-function earlygame(ns: NS) {
-	commitCrime(ns);
-	manageHacknetNodes(ns);
-	ns.singularity.upgradeHomeRam();
 }

@@ -10,7 +10,9 @@ import { manageCorporation } from "../mechanics/corporation";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	setupLog(ns, true, 3, 5);
+	let x = Number(ns.args[0]),
+		y = Number(ns.args[1]);
+	setupLog(ns, true, x, y);
 	ns.ui.setTailTitle("Corporation");
 
 	await ns.sleep(5000);
