@@ -13,5 +13,5 @@ import {
  */
 export async function main(ns: NS): Promise<void> {
 	purchaseAvailableAugmentations(ns, 0);
-	await installAugmentations(ns, 0);
+	installAugmentations(ns, 0);
 }

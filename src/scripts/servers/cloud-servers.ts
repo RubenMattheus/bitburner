@@ -11,10 +11,17 @@ const purchaseRam = 32;
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
+	let alertString = `CLOUD SERVER OVERVIEW`;
 	for (let s of ns.cloud.getServerNames()) {
-		ns.tprint(s + ": " + ns.getServerMaxRam(s) + "GB RAM");
+		alertString = alertString.concat(
+			`\n${s}: ${ns.format.ram(ns.getServerMaxRam(s))} RAM`,
+		);
 	}
-	ns.tprint("Max cloud server RAM: " + ns.cloud.getRamLimit() + "GB");
+	alertString = alertString.concat(
+		`\nMax cloud server RAM: ${ns.format.ram(ns.cloud.getRamLimit())}`,
+	);
+
+	ns.alert(alertString);
 }
 
 /**
@@ -23,32 +30,23 @@ export async function main(ns: NS): Promise<void> {
  * @param {NS} ns - The Bitburner API object.
  */
 export function manageServers(ns: NS) {
-	const timestamp = getTimestamp();
-
 	if (
 		ns.cloud.getServerNames().length < ns.cloud.getServerLimit() &&
 		ns.cloud.getServerCost(purchaseRam) < ns.getPlayer().money
 	) {
-		purchaseServer(ns, timestamp);
+		purchaseServer(ns);
 	} else {
-		upgradeServers(ns, timestamp);
+		upgradeServers(ns);
 	}
 }
 
-function purchaseServer(ns: NS, timestamp: string) {
-	const currentServerCount = ns.cloud.getServerNames().length;
-	const nextServerNumber =
-		currentServerCount < 9
-			? "0" + String(currentServerCount + 1)
-			: String(currentServerCount + 1);
+function purchaseServer(ns: NS) {
 	ns.print(
-		timestamp +
-			" Purchased " +
-			ns.cloud.purchaseServer("server-" + nextServerNumber, purchaseRam),
+		`${getTimestamp()} Purchased ${ns.cloud.purchaseServer(`server-${String(ns.cloud.getServerNames().length + 1).padStart(2, "0")}`, purchaseRam)}`,
 	);
 }
 
-function upgradeServers(ns: NS, timestamp: string) {
+function upgradeServers(ns: NS) {
 	const servers = ns.cloud.getServerNames();
 	const upgradeTarget = Math.min(
 		ns.getServerMaxRam(servers[servers.length - 1]) * 2,
@@ -71,13 +69,7 @@ function upgradeServers(ns: NS, timestamp: string) {
 		if (ns.getPlayer().money * 0.01 > upgradeCost) {
 			if (ns.cloud.upgradeServer(s, upgradeTarget)) {
 				ns.print(
-					timestamp +
-						" Upgraded " +
-						s +
-						" to " +
-						upgradeTarget +
-						"GB RAM for " +
-						ns.format.number(upgradeCost),
+					`${getTimestamp()} Upgraded ${s} to ${ns.format.ram(upgradeTarget)} RAM for $${ns.format.number(upgradeCost)}`,
 				);
 			} else {
 				return;

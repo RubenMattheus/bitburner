@@ -1,21 +1,17 @@
 import { NS } from "@ns";
 
 export async function main(ns: NS): Promise<void> {
-	let alertString = "GRAFTING OVERVIEW";
+	let alertString = `GRAFTING OVERVIEW`;
 
 	const unavailableAugmentations = getUnavailableAugmentations(ns);
 
 	alertString = alertString.concat(
-		"\n" +
-			unavailableAugmentations.length +
-			" augmentations currently only available through grafting:",
+		`\n	${unavailableAugmentations.length} augmentations currently only available through grafting:`,
 	);
 
 	for (let a of unavailableAugmentations) {
 		const graftPrice = ns.grafting.getAugmentationGraftPrice(a);
-		alertString = alertString.concat(
-			"\n" + a + " (" + ns.format.number(graftPrice) + ")",
-		);
+		alertString = alertString.concat(`\n ${a} (${ns.format.number(graftPrice)})`);
 	}
 
 	ns.alert(alertString);

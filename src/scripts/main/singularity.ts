@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { setupLog } from "./setup-log";
+import { setupLog } from "../logging/setup-log";
 import { manageSingularity } from "../mechanics/singularity";
 
 /**
@@ -19,6 +19,7 @@ export async function main(ns: NS): Promise<void> {
 
 	while (true) {
 		manageSingularity(ns);
+
 		await ns.sleep(10500);
 	}
 }

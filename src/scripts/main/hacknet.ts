@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { setupLog } from "./setup-log";
+import { setupLog } from "../logging/setup-log";
 import { manageHacknetNodes, manageHacknetServers } from "../mechanics/hacknet";
 
 /**
@@ -18,9 +18,9 @@ export async function main(ns: NS): Promise<void> {
 	await ns.sleep(5000);
 
 	while (true) {
-		const rush = ns.getServerMaxRam("home") < 256;
-		manageHacknetNodes(ns, rush);
+		manageHacknetNodes(ns);
 		manageHacknetServers(ns);
+
 		await ns.sleep(10500);
 	}
 }

@@ -15,7 +15,7 @@ function formatDate(date: Date): string {
 /**
  * Gets the current timestamp in a human-readable format.
  *
- * @returns {string} The current timestamp formatted as "[HH:MM:SS]".
+ * @returns {string} The current timestamp".
  */
 export function getTimestamp(): string {
 	return formatDate(new Date());
@@ -25,7 +25,7 @@ export function getTimestamp(): string {
  * Gets the timestamp for a future time based on the current time and a delay in milliseconds.
  *
  * @param {number} ms - The delay in milliseconds.
- * @returns {string} The timestamp for the future time formatted as "HH:MM:SS".
+ * @returns {string} The timestamp for the future time".
  */
 export function getTargetTime(ms: number): string {
 	return formatDate(new Date(Date.now() + ms));

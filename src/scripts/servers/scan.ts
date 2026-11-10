@@ -8,14 +8,17 @@ import { NS } from "@ns";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	ns.tprint("-- FACTIONS --");
-	ns.tprint("CyberSec:\t\t" + findServer(ns, "CSEC"));
-	ns.tprint("NiteSec:\t\t" + findServer(ns, "avmnite-02h"));
-	ns.tprint("The Black Hand:\t" + findServer(ns, "I.I.I.I"));
-	ns.tprint("BitRunners:\t\t" + findServer(ns, "run4theh111z"));
-	ns.tprint("Fulcrum Secret Technologies: " + findServer(ns, "fulcrumassets"));
-	ns.tprint("-- ENDGAME --");
-	ns.tprint("w0r1d_d43m0n :\t\t" + findServer(ns, "w0r1d_d43m0n"));
+	let alertString = `SERVER SCAN`;
+	alertString = alertString.concat(`
+		CyberSec: ${findServer(ns, "CSEC")}
+		NiteSec: ${findServer(ns, "avmnite-02h")}
+		The Black Hand: ${findServer(ns, "I.I.I.I")}
+		BitRunners: ${findServer(ns, "run4theh111z")}
+		Fulcrum Secret Technologies: ${findServer(ns, "fulcrumassets")}
+		
+		w0r1d_d43m0n : ${findServer(ns, "w0r1d_d43m0n")}
+	`);
+	ns.alert(alertString);
 }
 
 /**
@@ -28,7 +31,7 @@ export function scan(ns: NS): {
 	hasRootAccess: string[];
 	noRootAccess: string[];
 } {
-	const scanned = ["home"];
+	let scanned = ["home"];
 	const checking = ns.scan();
 
 	while (checking.length > 0) {
@@ -45,18 +48,24 @@ export function scan(ns: NS): {
 		checking.shift();
 	}
 
-	const serverDict: { hasRootAccess: string[]; noRootAccess: string[] } = {
-		hasRootAccess: [],
-		noRootAccess: [],
-	};
+	scanned = scanned.filter((s) => !s.includes("hacknet"));
 
-	for (let server of scanned) {
-		if (ns.hasRootAccess(server)) {
-			serverDict["hasRootAccess"].push(server);
-		} else {
-			serverDict["noRootAccess"].push(server);
-		}
-	}
+	const serverDict = {
+		hasRootAccess: scanned
+			.filter((s) => ns.hasRootAccess(s))
+			.sort(
+				(a, b) =>
+					ns.getServerRequiredHackingLevel(a) -
+					ns.getServerRequiredHackingLevel(b),
+			),
+		noRootAccess: scanned
+			.filter((s) => !ns.hasRootAccess(s))
+			.sort(
+				(a, b) =>
+					ns.getServerRequiredHackingLevel(a) -
+					ns.getServerRequiredHackingLevel(b),
+			),
+	};
 
 	serverDict["hasRootAccess"] = serverDict["hasRootAccess"].filter(
 		(s) => !s.includes("hacknet-server"),
@@ -64,17 +73,6 @@ export function scan(ns: NS): {
 	serverDict["noRootAccess"] = serverDict["noRootAccess"].filter(
 		(s) => !s.includes("hacknet-server"),
 	);
-
-	serverDict["hasRootAccess"].sort(function (a, b) {
-		return (
-			ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b)
-		);
-	});
-	serverDict["noRootAccess"].sort(function (a, b) {
-		return (
-			ns.getServerRequiredHackingLevel(a) - ns.getServerRequiredHackingLevel(b)
-		);
-	});
 
 	return serverDict;
 }

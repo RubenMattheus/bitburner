@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { setupLog } from "./setup-log";
+import { setupLog } from "../logging/setup-log";
 import { manageFactions } from "../mechanics/factions";
 
 /**
@@ -19,6 +19,7 @@ export async function main(ns: NS): Promise<void> {
 
 	while (true) {
 		await manageFactions(ns, 10);
+
 		await ns.sleep(10500);
 	}
 }

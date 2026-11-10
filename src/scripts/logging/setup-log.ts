@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { getTimestamp } from "../logging/timestamp";
+import { getTimestamp } from "./timestamp";
 
 /**
  * Sets up the log for the main script.
@@ -7,7 +7,12 @@ import { getTimestamp } from "../logging/timestamp";
  * @param {NS} ns - The Bitburner API object.
  * @param {string} minimal - Whether to use minimal logging (default: true).
  */
-export function setupLog(ns: NS, minimal: boolean = true, x: number, y: number) {
+export function setupLog(
+	ns: NS,
+	minimal: boolean = true,
+	x: number,
+	y: number,
+) {
 	if (minimal) {
 		ns.disableLog("ALL");
 	}

@@ -1,4 +1,4 @@
-import { GymType, NS, SleeveFactionTask, SleevePerson } from "@ns";
+import { NS, GymType } from "@ns";
 import { getTimestamp } from "../logging/timestamp";
 import { getIncompleteFactions } from "./factions";
 
@@ -10,29 +10,16 @@ export async function main(ns: NS): Promise<void> {
 		const sleeve = ns.sleeve.getSleeve(i);
 		const memoryString =
 			sleeve.memory < 100
-				? " (upgrade cost: " +
-					ns.format.number(ns.sleeve.getMemoryUpgradeCost(i, 1)) +
-					")"
-				: "";
+				? ` (upgrade cost: $${ns.format.number(ns.sleeve.getMemoryUpgradeCost(i, 1))})`
+				: ``;
 		alertString = alertString.concat(
-			"\nSleeve " +
-				i +
-				" - shock: " +
-				sleeve.shock.toFixed(3) +
-				", sync: " +
-				sleeve.sync.toFixed(3) +
-				", memory: " +
-				sleeve.memory +
-				memoryString,
+			`\nSleeve-${i} -- shock: ${ns.format.number(sleeve.shock)}, sync: ${ns.format.number(sleeve.sync)}, memory: ${sleeve.memory}${memoryString}`,
 		);
 	}
 
 	if (ns.sleeve.getNumSleeves() < 8) {
 		alertString = alertString.concat(
-			"\nSleeve " +
-				numSleeves +
-				" - " +
-				ns.format.number(ns.sleeve.getSleeveCost()),
+			`\nSleeve-${numSleeves} -- $${ns.format.number(ns.sleeve.getSleeveCost())}`,
 		);
 	}
 
@@ -87,9 +74,7 @@ function purchaseSleeve(ns: NS) {
 	if (ns.getPlayer().money > cost) {
 		if (ns.sleeve.purchaseSleeve()?.success == true) {
 			ns.print(
-				getTimestamp() +
-					" Purchased sleeve " +
-					(ns.sleeve.getNumSleeves() - 1 + " for " + ns.format.number(cost)),
+				`${getTimestamp()} Purchased sleeve ${ns.sleeve.getNumSleeves() - 1} for $${ns.format.number(cost)}`,
 			);
 		}
 	}
@@ -101,11 +86,7 @@ function upgradeSleeves(ns: NS) {
 		if (ns.getPlayer().money > cost) {
 			if (ns.sleeve.upgradeMemory(i, 1)?.success == true) {
 				ns.print(
-					getTimestamp() +
-						" Upgraded memory of sleeve " +
-						i +
-						" for " +
-						ns.format.number(cost),
+					`${getTimestamp()} Upgraded memory of sleeve ${i} for $${ns.format.number(cost)}`,
 				);
 			}
 		}
@@ -128,6 +109,11 @@ function checkStats(ns: NS, index: number): boolean {
 }
 
 function trainStats(ns: NS, index: number): boolean {
+	if (ns.getPlayer().money < 2e6) {
+		ns.sleeve.setToIdle(index);
+		return false;
+	}
+
 	const skills = ns.sleeve.getSleeve(index).skills;
 	const mults = ns.sleeve.getSleeve(index).mults;
 
@@ -165,33 +151,33 @@ function purchaseSleeveAugmentations(ns: NS, index: number) {
 	const availableAugmentations = ns.sleeve
 		.getSleevePurchasableAugs(index)
 		.filter(
-			(a) => ns.sleeve.getSleeveAugmentationPrice(a.name) < ns.getPlayer().money,
+			(a) =>
+				ns.sleeve.getSleeveAugmentationPrice(a.name) <
+				ns.getPlayer().money,
 		);
 	for (let a of availableAugmentations) {
 		if (ns.sleeve.purchaseSleeveAug(index, a.name)) {
 			ns.print(
-				getTimestamp() +
-					" Purchased augmentation " +
-					a.name +
-					" for sleeve " +
-					index +
-					" for " +
-					ns.format.number(a.cost),
+				`${getTimestamp()} Purchased augmentation ${a.name} for sleeve-${index} for $${ns.format.number(a.cost)}`,
 			);
 		}
 	}
 }
 
 function sleeveFactionWork(ns: NS, index: number): boolean {
-	const factions = getIncompleteFactions(ns);
+	let factions = getIncompleteFactions(ns);
+
 	if (factions.length == 0) {
 		return false;
 	}
 
 	for (let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
+		if (i == index) {
+			continue;
+		}
 		const task = ns.sleeve.getTask(i);
-		if (task?.type == "FACTION" && task?.factionName == factions[0]) {
-			factions.shift();
+		if (task?.type == "FACTION") {
+			factions = factions.filter((f) => f != task?.factionName);
 			if (factions.length == 0) {
 				return false;
 			}

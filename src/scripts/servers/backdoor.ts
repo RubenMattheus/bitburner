@@ -1,34 +1,16 @@
-import { NS, FactionName, ProgramName } from "@ns";
+import { NS, ProgramName } from "@ns";
 import { scan, findServer } from "./scan";
 import { getTimestamp } from "../logging/timestamp";
 
 export async function main(ns: NS): Promise<void> {
 	if (await backdoor(ns, "w0r1d_d43m0n", false)) {
 		ns.alert("Connected to w0r1d_d43m0n");
+	} else if (!ns.singularity.getOwnedAugmentations().includes("The Red Pill")) {
+		ns.alert(`w0r1d_d43m0n is not yet visible`);
 	} else {
 		ns.alert(
-			"w0r1d_d43m0n is not yet visible or hacking level is too low (required hacking level: " +
-				ns.getServerRequiredHackingLevel("w0r1d_d43m0n") +
-				")",
+			`Hacking level is too low (required hacking level: ${ns.getServerRequiredHackingLevel("w0r1d_d43m0n")})`,
 		);
-	}
-}
-
-export function nuke(ns: NS) {
-	const timestamp = getTimestamp();
-
-	const noRootAccess = scan(ns)["noRootAccess"];
-
-	for (let server of noRootAccess) {
-		ns.brutessh(server);
-		ns.ftpcrack(server);
-		ns.relaysmtp(server);
-		ns.httpworm(server);
-		ns.sqlinject(server);
-
-		if (ns.nuke(server)) {
-			ns.print(timestamp + " Gained access to " + server);
-		}
 	}
 }
 
@@ -36,6 +18,8 @@ export async function backdoorServers(
 	ns: NS,
 	finishBitnode: boolean = false,
 ): Promise<void> {
+	setupTor(ns);
+	nuke(ns);
 	const servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "fulcrumassets"];
 
 	if (finishBitnode) {
@@ -76,7 +60,7 @@ async function backdoor(
 	}
 }
 
-export function setupTor(ns: NS) {
+function setupTor(ns: NS): boolean {
 	if (ns.singularity.purchaseTor()) {
 		for (let exe of [
 			"BruteSSH.exe",
@@ -86,8 +70,27 @@ export function setupTor(ns: NS) {
 			"SQLInject.exe",
 		]) {
 			if (!ns.singularity.purchaseProgram(exe as ProgramName)) {
-				return;
+				return false;
 			}
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+function nuke(ns: NS) {
+	const noRootAccess = scan(ns)["noRootAccess"];
+
+	for (let server of noRootAccess) {
+		ns.brutessh(server);
+		ns.ftpcrack(server);
+		ns.relaysmtp(server);
+		ns.httpworm(server);
+		ns.sqlinject(server);
+
+		if (ns.nuke(server)) {
+			ns.print(`${getTimestamp()} Gained access to ${server}`);
 		}
 	}
 }

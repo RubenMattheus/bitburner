@@ -14,9 +14,11 @@ import { getTimestamp } from "../logging/timestamp";
  * @returns {Promise<void>}
  */
 export async function main(ns: NS): Promise<void> {
-	let alertString = "BLADEBURNER OVERVIEW";
+	let alertString = `BLADEBURNER OVERVIEW`;
 	const blackOps = ns.bladeburner.getBlackOpNames();
-	const finalRank = ns.bladeburner.getBlackOpRank(blackOps[blackOps.length - 1]);
+	const finalRank = ns.bladeburner.getBlackOpRank(
+		blackOps[blackOps.length - 1],
+	);
 
 	const completed = [];
 	const next = ns.bladeburner.getNextBlackOp();
@@ -25,20 +27,17 @@ export async function main(ns: NS): Promise<void> {
 	}
 
 	alertString = alertString.concat(
-		"\nBlack Operations: " +
-			completed.length +
-			"/" +
-			(blackOps.length + completed.length) +
-			"\nRank: " +
-			ns.bladeburner.getRank().toFixed() +
-			"/" +
-			finalRank +
-			" [" +
-			((ns.bladeburner.getRank() / finalRank) * 100).toFixed(2) +
-			"%]",
+		`Black Operations: ${completed.length}/${blackOps.length + completed.length}
+		Rank: ${ns.format.number(ns.bladeburner.getRank())}/${finalRank} [${ns.format.percent(ns.bladeburner.getRank() / finalRank)}]`,
 	);
-	alertString = alertString.concat("\n--- DONE ---\n" + completed);
-	alertString = alertString.concat("\n--- TODO ---\n" + blackOps);
+	alertString = alertString.concat(
+		`\n--- DONE ---
+		${completed}`,
+	);
+	alertString = alertString.concat(
+		`\n--- TODO ---
+		${blackOps}`,
+	);
 
 	let totalPopulation = 0;
 	let totalChaos = 0;
@@ -46,26 +45,18 @@ export async function main(ns: NS): Promise<void> {
 		const cityPopulation = ns.bladeburner.getCityEstimatedPopulation(c);
 		const cityChaos = ns.bladeburner.getCityChaos(c);
 		alertString = alertString.concat(
-			"\n--- " +
-				c +
-				"---\nPOPULATION: " +
-				(cityPopulation / 1e9).toFixed(3) +
-				"b\nCHAOS: " +
-				cityChaos.toFixed(3),
+			`\n--- ${c} ---
+			POPULATION: ${ns.format.number(cityPopulation)}
+			CHAOS: ${ns.format.number(cityChaos)}`,
 		);
 		totalPopulation += cityPopulation;
 		totalChaos += cityChaos;
 	}
 
 	alertString = alertString.concat(
-		"\n--- COMBINED --- \nPOPULATION: " +
-			(totalPopulation / 1e9).toFixed(1) +
-			"b/" +
-			Object.values(ns.enums.CityName).length * 1.25 +
-			"b\nCHAOS: " +
-			totalChaos.toFixed(1) +
-			"/" +
-			Object.values(ns.enums.CityName).length * 50,
+		`\n--- COMBINED ---
+		POPULATION: ${ns.format.number(totalPopulation, 1)}/${Object.values(ns.enums.CityName).length * 1.25}b
+		CHAOS: ${ns.format.number(totalChaos, 1)}/${Object.values(ns.enums.CityName).length * 50}`,
 	);
 
 	ns.alert(alertString);
@@ -77,15 +68,20 @@ export async function main(ns: NS): Promise<void> {
  * @param {NS} ns - The Bitburner API object.
  */
 export function manageBladeburner(ns: NS) {
-	ns.bladeburner.joinBladeburnerDivision();
-	ns.bladeburner.joinBladeburnerFaction();
+	if (ns.bladeburner.joinBladeburnerDivision()) {
+		ns.bladeburner.joinBladeburnerFaction();
 
-	pickCity(ns);
-	pickAction(ns);
-	upgradeSkills(ns);
+		pickCity(ns);
+		pickAction(ns);
+		upgradeSkills(ns);
+	}
 }
 
-function setAction(ns: NS, type: BladeburnerActionType, name: BladeburnerActionName) {
+function setAction(
+	ns: NS,
+	type: BladeburnerActionType,
+	name: BladeburnerActionName,
+) {
 	if (ns.bladeburner.getCurrentAction()?.name != name) {
 		return ns.bladeburner.startAction(type, name);
 	} else {
@@ -101,37 +97,47 @@ function setAction(ns: NS, type: BladeburnerActionType, name: BladeburnerActionN
 function pickAction(ns: NS): boolean {
 	const [currentStamina, maxStamina] = ns.bladeburner.getStamina();
 
-	if (ns.bladeburner.getCityChaos(ns.bladeburner.getCity()) > 50 && lowerChaos(ns)) {
+	if (
+		ns.bladeburner.getCityChaos(ns.bladeburner.getCity()) > 50 &&
+		lowerChaos(ns)
+	) {
 		return true;
 	} else if (lowerOtherCityChaos(ns)) {
 		return true;
 	}
 
-	const dataAccuracyActions: [BladeburnerActionType, BladeburnerActionName][] = [
+	const dataAccuracyActions: [
+		BladeburnerActionType,
+		BladeburnerActionName,
+	][] = [
 		["Contracts", "Tracking"],
 		["Operations", "Investigation"],
 		["Operations", "Undercover Operation"],
 	];
 
-	const retirementActions: [BladeburnerActionType, BladeburnerActionName][] = [
-		["Contracts", "Bounty Hunter"],
-		["Contracts", "Retirement"],
-		["Operations", "Assassination"],
-	];
+	const retirementActions: [BladeburnerActionType, BladeburnerActionName][] =
+		[
+			["Contracts", "Bounty Hunter"],
+			["Contracts", "Retirement"],
+			["Operations", "Assassination"],
+		];
 
 	if (currentStamina > maxStamina / 2) {
 		if (startBlackOp(ns) == true) {
 			return true;
 		} else if (
-			ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) >
-				1.25e9 &&
+			ns.bladeburner.getCityEstimatedPopulation(
+				ns.bladeburner.getCity(),
+			) > 1.25e9 &&
 			!accuracyNeeded(ns) &&
 			performAction(ns, retirementActions) == true
 		) {
 			return true;
 		} else if (performAction(ns, dataAccuracyActions) == true) {
 			return true;
-		} else if (generateWork(ns, dataAccuracyActions.concat(retirementActions))) {
+		} else if (
+			generateWork(ns, dataAccuracyActions.concat(retirementActions))
+		) {
 			return true;
 		} else if (increaseOtherCityAccuracy(ns, dataAccuracyActions)) {
 			return true;
@@ -171,7 +177,8 @@ function performAction(
 		.filter(
 			(a) =>
 				ns.bladeburner.getActionCountRemaining(a[0], a[1]) > 50 &&
-				ns.bladeburner.getActionEstimatedSuccessChance(a[0], a[1])[0] > 0.5,
+				ns.bladeburner.getActionEstimatedSuccessChance(a[0], a[1])[0] >
+					0.5,
 		)
 		.reverse()[0];
 
@@ -260,12 +267,16 @@ function upgradeSkills(ns: NS) {
 		"Hyperdrive",
 	];
 	tier1.sort((a, b) => {
-		return ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b);
+		return (
+			ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b)
+		);
 	});
 
 	const tier2: BladeburnerSkillName[] = ["Datamancer"];
 	tier2.sort((a, b) => {
-		return ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b);
+		return (
+			ns.bladeburner.getSkillLevel(a) - ns.bladeburner.getSkillLevel(b)
+		);
 	});
 
 	const tier3: BladeburnerSkillName[] = ["Tracer"];
@@ -300,7 +311,7 @@ function upgradeSkills(ns: NS) {
 		}
 		if (ns.bladeburner.upgradeSkill("Overclock")) {
 			ns.print(
-				getTimestamp() + " Upgraded Overclock to level " + (overclockLevel + 1),
+				`${getTimestamp()} Upgraded Overclock to level ${overclockLevel + 1}`,
 			);
 		}
 	} else {
@@ -334,7 +345,8 @@ function lowerOtherCityChaos(ns: NS): boolean {
 		(c) => ns.bladeburner.getCityChaos(c) > 100,
 	);
 	cities.sort(
-		(a, b) => ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a),
+		(a, b) =>
+			ns.bladeburner.getCityChaos(b) - ns.bladeburner.getCityChaos(a),
 	);
 
 	if (cities.length == 0) {
@@ -371,7 +383,9 @@ function generateWork(
 			(c) =>
 				ns.bladeburner.getCityChaos(c) < 40 &&
 				actions.some(
-					(a) => ns.bladeburner.getActionCountRemaining(a[0], a[1]) < 100,
+					(a) =>
+						ns.bladeburner.getActionCountRemaining(a[0], a[1]) <
+						100,
 				),
 		)
 	) {

@@ -23,7 +23,9 @@ export function manageHacking(ns: NS) {
 	// calculate needed threads and optimal action for targets
 	for (let target of targets) {
 		const hackPerc = Math.min(
-			ns.getHackingLevel() / 13.33 / ns.getServerRequiredHackingLevel(target),
+			ns.getHackingLevel() /
+				13.33 /
+				ns.getServerRequiredHackingLevel(target),
 			0.75,
 		); // scales from 0.15 at 2x required hacking level to 0.75 at 10x required hacking level
 
@@ -50,7 +52,10 @@ export function manageHacking(ns: NS) {
 		let growThreads = 5;
 		if (currentMoney != 0) {
 			growThreads = Math.ceil(
-				ns.growthAnalyze(target, ns.getServerMaxMoney(target) / currentMoney),
+				ns.growthAnalyze(
+					target,
+					ns.getServerMaxMoney(target) / currentMoney,
+				),
 			);
 		}
 		const hackThreads = Math.ceil(hackPerc / ns.hackAnalyze(target));
@@ -74,7 +79,11 @@ function useFreeRam(ns: NS) {
 		let scriptPath = "";
 		const cloudServers = ns.cloud.getServerNames();
 
-		if (cloudServers.slice(-Math.floor(cloudServers.length / 5)).includes(server)) {
+		if (
+			cloudServers
+				.slice(-Math.floor(cloudServers.length / 5))
+				.includes(server)
+		) {
 			scriptPath = scriptBase + "share.js";
 		} else {
 			scriptPath = scriptBase + "xp.js";
@@ -87,7 +96,8 @@ function useFreeRam(ns: NS) {
 		}
 
 		const threads = Math.floor(
-			(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) / scriptRam,
+			(ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) /
+				scriptRam,
 		);
 
 		if (threads > 0) {
@@ -104,7 +114,12 @@ function useFreeRam(ns: NS) {
  * @param {string} target - The target server for the action.
  * @param {number} totalNeededThreads - The total number of threads needed for the action.
  */
-function execute(ns: NS, action: string, target: string, totalNeededThreads: number) {
+function execute(
+	ns: NS,
+	action: string,
+	target: string,
+	totalNeededThreads: number,
+) {
 	const scriptPath = scriptBase + action + ".js";
 	const scriptRam = ns.getScriptRam(scriptPath);
 	let neededThreads = totalNeededThreads;

@@ -1,5 +1,5 @@
 import { NS } from "@ns";
-import { setupLog } from "./setup-log";
+import { setupLog } from "../logging/setup-log";
 import { getTimestamp } from "../logging/timestamp";
 import { manageBladeburner } from "../mechanics/bladeburner";
 
@@ -19,19 +19,25 @@ export async function main(ns: NS): Promise<void> {
 	let nextBlackOp;
 	if (ns.bladeburner.inBladeburner()) {
 		nextBlackOp = ns.bladeburner.getNextBlackOp();
-		ns.print(getTimestamp() + " Next Black Operation is " + nextBlackOp?.name);
+		ns.print(
+			getTimestamp() + " Next Black Operation is " + nextBlackOp?.name,
+		);
 	}
 
 	await ns.sleep(5000);
 
 	while (true) {
-		if (nextBlackOp && ns.bladeburner.getNextBlackOp()?.name != nextBlackOp?.name) {
+		if (
+			nextBlackOp &&
+			ns.bladeburner.getNextBlackOp()?.name != nextBlackOp?.name
+		) {
 			ns.print(
-				getTimestamp() + " Completed Black Operation " + nextBlackOp?.name,
+				`${getTimestamp()} Completed Black Operation ${nextBlackOp?.name}`,
 			);
 			nextBlackOp = ns.bladeburner.getNextBlackOp();
 		}
 		manageBladeburner(ns);
+
 		await ns.sleep(10500);
 	}
 }

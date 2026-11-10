@@ -5,7 +5,7 @@ export function manageCorporation(ns: NS) {
 	if (!ns.corporation.hasCorporation()) {
 		if (ns.corporation.canCreateCorporation(true)) {
 			if (ns.corporation.createCorporation("Korporation", true)) {
-				ns.print(getTimestamp() + " Created corporation");
+				ns.print(`${getTimestamp()} Created corporation`);
 			}
 		} else {
 			return;
