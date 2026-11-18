@@ -1,75 +1,99 @@
 import { NS } from "@ns";
+import { managerClass } from "../library/manager";
 
-export async function main(ns: NS): Promise<void> {
-	let alertString = `GRAFTING OVERVIEW`;
-
-	const unavailableAugmentations = getUnavailableAugmentations(ns);
-
-	alertString = alertString.concat(
-		`\n	${unavailableAugmentations.length} augmentations currently only available through grafting:`,
-	);
-
-	for (let a of unavailableAugmentations) {
-		const graftPrice = ns.grafting.getAugmentationGraftPrice(a);
-		alertString = alertString.concat(`\n ${a} (${ns.format.number(graftPrice)})`);
+export class graftingManager extends managerClass {
+	constructor(ns: NS) {
+		super(ns, "Grafting");
 	}
 
-	ns.alert(alertString);
-}
-
-export function manageGrafting(ns: NS) {
-	if (!implantOwned(ns)) {
-		installImplant(ns);
-	} else {
-		graft(ns);
+	tick(ns: NS) {
+		if (!this.implantOwned(ns)) {
+			this.installImplant(ns);
+		} else {
+			this.graft(ns);
+		}
 	}
-}
 
-function graft(ns: NS): boolean {
-	if (implantOwned(ns)) {
-		if (ns.singularity.getCurrentWork()?.type != "GRAFTING") {
+	graft(ns: NS): boolean {
+		const nextAugmentation = this.getUnavailableAugmentations(ns)[0];
+		if (this.implantOwned(ns)) {
+			if (ns.singularity.getCurrentWork()?.type != "GRAFTING") {
+				if (ns.getPlayer().city != "New Tokyo") {
+					ns.singularity.travelToCity("New Tokyo");
+				}
+				if (ns.grafting.graftAugmentation(nextAugmentation)) {
+					this.log(ns, `Started grafting ${nextAugmentation}`);
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return true;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	implantOwned(ns: NS) {
+		return ns.singularity
+			.getOwnedAugmentations()
+			.includes("violet Congruity Implant");
+	}
+
+	installImplant(ns: NS) {
+		if (
+			ns.getPlayer().money >
+				ns.grafting.getAugmentationGraftPrice(
+					"violet Congruity Implant",
+				) &&
+			ns.singularity.getCurrentWork()?.type != "GRAFTING"
+		) {
 			if (ns.getPlayer().city != "New Tokyo") {
 				ns.singularity.travelToCity("New Tokyo");
 			}
-			return ns.grafting.graftAugmentation(getUnavailableAugmentations(ns)[0]);
+			if (ns.grafting.graftAugmentation("violet Congruity Implant")) {
+				this.log(ns, `Started grafting violet Congruity Implant`);
+				return true;
+			} else {
+				return false;
+			}
 		} else {
 			return true;
 		}
-	} else {
-		return false;
+	}
+
+	getUnavailableAugmentations(ns: NS) {
+		return ns.grafting
+			.getGraftableAugmentations()
+			.filter((a) =>
+				ns.singularity
+					.getAugmentationFactions(a)
+					.every((f) => !ns.getPlayer().factions.includes(f)),
+			)
+			.sort(
+				(a, b) =>
+					ns.grafting.getAugmentationGraftPrice(a) -
+					ns.grafting.getAugmentationGraftPrice(b),
+			);
 	}
 }
 
-function implantOwned(ns: NS) {
-	return ns.singularity.getOwnedAugmentations().includes("violet Congruity Implant");
-}
+// export async function main(ns: NS): Promise<void> {
+// 	let alertString = `GRAFTING OVERVIEW`;
 
-function installImplant(ns: NS) {
-	if (
-		ns.getPlayer().money >
-			ns.grafting.getAugmentationGraftPrice("violet Congruity Implant") &&
-		ns.singularity.getCurrentWork()?.type != "GRAFTING"
-	) {
-		if (ns.getPlayer().city != "New Tokyo") {
-			ns.singularity.travelToCity("New Tokyo");
-		}
-		return ns.grafting.graftAugmentation("violet Congruity Implant");
-	} else {
-		return true;
-	}
-}
+// 	const unavailableAugmentations = getUnavailableAugmentations(ns);
 
-function getUnavailableAugmentations(ns: NS) {
-	return ns.grafting
-		.getGraftableAugmentations()
-		.filter((a) =>
-			ns.singularity
-				.getAugmentationFactions(a)
-				.every((f) => !ns.getPlayer().factions.includes(f)),
-		)
-		.sort(
-			(a, b) =>
-				ns.grafting.getAugmentationGraftPrice(a) -
-				ns.grafting.getAugmentationGraftPrice(b),
-		);
-}
+// 	alertString = alertString.concat(
+// 		`\n	${unavailableAugmentations.length} augmentations currently only available through grafting:`,
+// 	);
+
+// 	for (let a of unavailableAugmentations) {
+// 		const graftPrice = ns.grafting.getAugmentationGraftPrice(a);
+// 		alertString = alertString.concat(
+// 			`\n ${a} (${ns.format.number(graftPrice)})`,
+// 		);
+// 	}
+
+// 	ns.alert(alertString);
+// }

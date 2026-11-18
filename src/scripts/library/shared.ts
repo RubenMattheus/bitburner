@@ -27,10 +27,7 @@ export async function main(ns: NS): Promise<void> {
  * @param {NS} ns - The Bitburner API object.
  * @returns {{ hasRootAccess: string[], noRootAccess: string[] }} The dictionary containing all servers
  */
-export function scan(ns: NS): {
-	hasRootAccess: string[];
-	noRootAccess: string[];
-} {
+export function getServers(ns: NS) {
 	let scanned = ["home"];
 	const checking = ns.scan();
 
@@ -49,32 +46,29 @@ export function scan(ns: NS): {
 	}
 
 	scanned = scanned.filter((s) => !s.includes("hacknet"));
+	return scanned;
+}
 
-	const serverDict = {
-		hasRootAccess: scanned
-			.filter((s) => ns.hasRootAccess(s))
-			.sort(
-				(a, b) =>
-					ns.getServerRequiredHackingLevel(a) -
-					ns.getServerRequiredHackingLevel(b),
-			),
-		noRootAccess: scanned
-			.filter((s) => !ns.hasRootAccess(s))
-			.sort(
-				(a, b) =>
-					ns.getServerRequiredHackingLevel(a) -
-					ns.getServerRequiredHackingLevel(b),
-			),
-	};
+export function getRootAccessServers(ns: NS) {
+	const servers = getServers(ns);
+	return servers
+		.filter((s) => ns.hasRootAccess(s))
+		.sort(
+			(a, b) =>
+				ns.getServerRequiredHackingLevel(b) -
+				ns.getServerRequiredHackingLevel(a),
+		);
+}
 
-	serverDict["hasRootAccess"] = serverDict["hasRootAccess"].filter(
-		(s) => !s.includes("hacknet-server"),
-	);
-	serverDict["noRootAccess"] = serverDict["noRootAccess"].filter(
-		(s) => !s.includes("hacknet-server"),
-	);
-
-	return serverDict;
+export function getNoRootAccessServers(ns: NS) {
+	const servers = getServers(ns);
+	return servers
+		.filter((s) => !ns.hasRootAccess(s))
+		.sort(
+			(a, b) =>
+				ns.getServerRequiredHackingLevel(b) -
+				ns.getServerRequiredHackingLevel(a),
+		);
 }
 
 /**
@@ -84,14 +78,7 @@ export function scan(ns: NS): {
  * @param {string} target -The target server to find the path to.
  */
 export function findServer(ns: NS, target: string): string[] {
-	const servers = scan(ns);
-
-	if (target == "home") {
-		return [];
-	} else if (
-		!servers["hasRootAccess"].includes(target) &&
-		!servers["noRootAccess"].includes(target)
-	) {
+	if (target == "home" || !ns.serverExists(target)) {
 		return [];
 	}
 
@@ -108,4 +95,18 @@ export function findServer(ns: NS, target: string): string[] {
 	path.unshift("home");
 
 	return path;
+}
+
+export function nuke(ns: NS) {
+	const servers = getNoRootAccessServers(ns);
+
+	for (let s of servers) {
+		ns.brutessh(s);
+		ns.ftpcrack(s);
+		ns.relaysmtp(s);
+		ns.httpworm(s);
+		ns.sqlinject(s);
+
+		ns.nuke(s);
+	}
 }

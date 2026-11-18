@@ -18,7 +18,7 @@ export function setupLog(
 	}
 
 	const windowSize = ns.ui.windowSize();
-	const tailSize = [windowSize[0] / 4, windowSize[1] / 10];
+	const tailSize = [windowSize[0] / 4, windowSize[1] / 5];
 	const tailCoords = [tailSize[0] * x, tailSize[1] * y];
 
 	ns.ui.openTail();

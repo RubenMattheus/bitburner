@@ -3,10 +3,10 @@ import { NS } from "@ns";
 export async function main(ns: NS): Promise<void> {
 	let alertString = `SCRIPT OVERVIEW\n`;
 
-	const scripts = ns.ls("home", "/main/");
+	const scripts = ns.ls("home", "/mechanics/");
 	for (let script of scripts) {
 		alertString = alertString.concat(
-			`\n${script.split("main/")[1]}: ${ns.format.ram(ns.getScriptRam(script))} RAM`,
+			`\n${script.split("mechanics/")[1]}: ${ns.format.ram(ns.getScriptRam(script))} RAM`,
 		);
 	}
 
